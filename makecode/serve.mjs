@@ -24,6 +24,9 @@ const HUB = args.includes("--hub-headers") ? {
   "permissions-policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()",
 } : {};
 
+// files the sandboxed simulator frame loads (makecode/sim/simulator.html), relative to the route
+const SIM_ASSETS = /^(simulator\.html|pxtsim\.js|sim\.js|sim\.css)$/;
+
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
@@ -51,6 +54,9 @@ createServer(async (req, res) => {
     const body = await readFile(f);
     const type = TYPES[extname(f).toLowerCase()] ?? "application/octet-stream";
     const headers = { "content-type": type, "cache-control": "no-cache", "x-content-type-options": "nosniff", ...HUB };
+    // The simulator frame runs sandboxed (opaque origin), so its own subresources are cross-origin requests:
+    // with the hub CORP "same-origin" they would be blocked. These public static files get CORP "cross-origin".
+    if (HUB["cross-origin-resource-policy"] && SIM_ASSETS.test(p)) headers["cross-origin-resource-policy"] = "cross-origin";
     const csp = type.startsWith("text/html") ? cspFor(cspMode, body.toString("utf8"), f.split("\\").join("/")) : "";
     if (csp) headers["content-security-policy"] = csp;
     res.writeHead(200, headers).end(body);

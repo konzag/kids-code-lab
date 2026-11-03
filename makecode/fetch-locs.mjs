@@ -34,10 +34,14 @@ const files = [
   { crowd: `${target}/sim-strings.json`, src: join(arcade, "built", "sim-strings.json") },
 ];
 const pxtarget = JSON.parse(await readFile(join(arcade, "pxtarget.json"), "utf8"));
+// Library strings: <lib>-strings.json and <lib>-jsdoc-strings.json per bundled package. Their English source files
+// (libs/<lib>/_locales/) only exist after a first pxt build, so on a fresh clone the names are derived from the
+// folder names (the files pxt generates are named after the package folder) and the reference language is counted.
 for (const dir of pxtarget.bundleddirs) {
   const loc = join(arcade, dir, "_locales");
-  if (!existsSync(loc)) continue;
-  for (const f of await readdir(loc)) if (f.endsWith(".json")) files.push({ crowd: `${target}/${f}`, src: join(loc, f) });
+  const names = new Set([`${basename(dir)}-strings.json`, `${basename(dir)}-jsdoc-strings.json`]);
+  if (existsSync(loc)) for (const f of await readdir(loc)) if (f.endsWith(".json")) names.add(f);
+  for (const f of names) files.push({ crowd: `${target}/${f}`, src: existsSync(join(loc, f)) ? join(loc, f) : null });
 }
 
 const rows = [];

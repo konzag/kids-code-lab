@@ -1,6 +1,6 @@
-/* play-only page: the simulator frame fills the window (the driver sets an aspect-ratio padding we override) */
+/* play-only page: the sandboxed simulator frame fills the window */
 html, body { margin: 0; height: 100%; background: #1d2b26; color: #f6efe0; font: 18px system-ui, sans-serif; }
 #player { position: fixed; inset: 0; }
-#player .simframe { position: absolute !important; inset: 0; padding: 0 !important; height: 100%; width: 100%; }
 #player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-#status { position: fixed; bottom: 0; left: 0; margin: 0.5rem; }
+#status { position: relative; z-index: 1; margin: 1rem; max-width: 40rem; }
+#status:empty { display: none; }

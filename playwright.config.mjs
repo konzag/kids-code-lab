@@ -1,6 +1,6 @@
 // Checks of the packaged MakeCode Arcade site (docs/BUILD.md "Checks"), served by makecode/serve.mjs on 127.0.0.1.
 // PKG = the slim site folder (default: .build/slim of makecode/build.sh).
-// CSP = none | strict | editor | play (makecode/csp.mjs). SW=allow lets the browser register service workers.
+// CSP = none | strict | editor | play (makecode/csp.mjs). SW=block makes Playwright block service workers (default: allowed).
 // HUB_HEADERS=1 adds the games-hub security headers. EDITOR_TIGHT=1 = the recommended editor CSP pair.
 import { defineConfig } from "@playwright/test";
 import { resolve } from "node:path";
@@ -20,7 +20,10 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     browserName: "chromium",
     viewport: { width: 1280, height: 800 },
-    serviceWorkers: process.env.SW === "allow" ? "allow" : "block",
+    // "allow": the checks prove that nothing registers a service worker even when the browser would allow it.
+    // (Playwright's "block" mode also injects a navigator.serviceWorker read into every frame, which throws a
+    // console error inside the sandboxed simulator frame.)
+    serviceWorkers: process.env.SW === "block" ? "block" : "allow",
   },
   webServer: {
     command: `node makecode/serve.mjs "${PKG}" --port ${PORT} --route /kids-code-lab/ --csp ${CSP}${HUB}`,

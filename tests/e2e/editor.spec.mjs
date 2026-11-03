@@ -59,6 +59,22 @@ test("editor: block project runs in the simulator, offline, no service worker", 
     }, { timeout: 60_000 })
     .toBe(RED);
 
+  // the editor's simulator frame is sandboxed without allow-same-origin (opaque origin): the game cannot reach the
+  // site's cookies, storage, parent page or same-origin API (the probe's own blocked fetch of /api/profiles is
+  // filtered out of the console/CSP checks below)
+  const simFrame = page.locator("iframe[id^='sim-frame-']").first();
+  expect(await simFrame.getAttribute("sandbox")).toBe("allow-scripts");
+  const probe = await page.frames().filter((f) => !f.isDetached() && /simulator\.html/.test(f.url())).pop().evaluate(async () => {
+    const r = { origin: self.origin };
+    try { r.cookie = document.cookie; } catch (e) { r.cookie = "blocked:" + e.name; }
+    try { r.storage = localStorage.length; } catch (e) { r.storage = "blocked:" + e.name; }
+    try { r.parentDom = !!window.parent.document; } catch (e) { r.parentDom = "blocked:" + e.name; }
+    try { const res = await fetch("/api/profiles"); r.fetch = "status " + res.status; } catch (e) { r.fetch = "blocked:" + e.name; }
+    return r;
+  });
+  expect(probe.origin).toBe("null");
+  for (const k of ["cookie", "storage", "parentDom", "fetch"]) expect(String(probe[k]), k).toMatch(/^blocked:/);
+
   // the .png cartridge (project source inside the image) is a data: URL download: the child's backup
   const dl = page.waitForEvent("download", { timeout: 60_000 });
   await page.locator(".save-editortools-btn").first().click();
@@ -70,10 +86,11 @@ test("editor: block project runs in the simulator, offline, no service worker", 
   expect(regs).toBe(0);
   expect(context.serviceWorkers()).toHaveLength(0);
 
-  save("run", rec, errors);
+  const notProbe = (t) => !/\/api\/profiles/.test(t);
+  save("run", rec, errors.filter(notProbe), { sandboxProbe: probe });
   expect(rec.external, "requests outside 127.0.0.1").toEqual([]);
-  expect(rec.violations, "CSP violations").toEqual([]);
-  expect(errors, "console errors").toEqual([]);
+  expect(rec.violations.filter(notProbe), "CSP violations").toEqual([]);
+  expect(errors.filter(notProbe), "console errors").toEqual([]);
 });
 
 test("editor: no cloud UI (sign-in, share, GitHub, extensions, AI, cloud import)", async ({ context }) => {
