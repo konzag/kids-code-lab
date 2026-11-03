@@ -54,8 +54,8 @@ jobs:
             echo "::error::the build called the makecode.com cloud compiler (hardware variants back?)"; exit 1
           fi
 
-      - name: Check - editor offline, no service worker, no console errors (no CSP header, SW allowed)
-        run: SW=allow npx playwright test tests/e2e/editor.spec.mjs
+      - name: Check - editor offline, no service worker, no console errors (no CSP header)
+        run: npx playwright test tests/e2e/editor.spec.mjs
 
       - name: Check - editor + play page with the recommended CSPs and the games-hub headers
         run: |

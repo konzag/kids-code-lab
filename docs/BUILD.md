@@ -50,6 +50,7 @@ compiler** any more (the hardware variants are removed, see below); CI fails if 
 | output HTML `pxtConfig.cdnUrl` | `""` | `pxt.Cloud.initRegionAsync()` did `new URL("geo", "/kids-code-lab/")` and logged "Unable to determine region" (console error); with an empty `cdnUrl` it returns "unknown" silently. `cdnUrl` is otherwise only used for cloud docs and the hardware hex cache |
 | output `locales/<lang>/sim-strings.json` | `{}` when missing | there are no approved Greek simulator strings; the simulator requested the file on every run (HTTP 404) |
 | output `pxtsim.js`, `pxtembed.js`, `pxtapp.js` | simulator iframe `allow="autoplay;microphone"` -> `allow="autoplay"` | no microphone feature in the lab; under the hub's `Permissions-Policy: microphone=()` Chrome logged a policy violation on every run |
+| output `pxtsim.js`, `pxtembed.js`, `pxtapp.js` | editor simulator frame `sandbox="allow-scripts"` (no `allow-same-origin`); driver posts to it with targetOrigin `*`; accepts origin `null` only from its own simulator frames (`ev.source`) | the child's compiled game runs with `'unsafe-eval'` in that frame; with an opaque origin it cannot reach the site's cookies, storage, parent page or `/api/*`. See "Player security". The build fails if the three code patterns are not found (pxt-core upgrade) |
 | output files | delete `serviceworker.js`, `simulatorserviceworker.js`, `release.manifest` | GAME-STANDARD: no service worker, no offline cache. The static build never registers one (`isStatic`), the deletion makes sure nothing can |
 | slim copy | keep editor, simulator, runner, locales, Blockly/Monaco assets, tutorials as markdown; drop the docs site media, skillmap, teacher tool, kiosk, multiplayer and the other sub-apps | 464 MB -> 76 MB |
 
@@ -68,15 +69,15 @@ frames and workers is recorded; anything not on 127.0.0.1 is aborted and fails t
 
 | Spec | Checks |
 |---|---|
-| [`tests/e2e/editor.spec.mjs`](../tests/e2e/editor.spec.mjs) | new project, JavaScript -> blocks, the simulator runs it (pixel check), the `.png` cartridge downloads; 0 external requests, 0 service workers (with service workers allowed), 0 CSP violations, 0 console errors. No cloud UI: no sign-in, no share, no GitHub button, no Extensions category or menu entry, no AI error help, home page with "My Projects" only and no links out of the site. Languages: Greek by default, exactly en + el in the language menu, English chosen there is remembered after reload, `?lang=el` forces Greek |
-| [`tests/e2e/play.spec.mjs`](../tests/e2e/play.spec.mjs) | compiles a program with the packaged runner (`run.html?code=...&sendBuilt=1`), then the play page runs it without the editor at 1280x800 (keyboard), 820x1180 and 1180x820 (on-screen d-pad moves the sprite); no editor/compiler files loaded, 0 external, 0 CSP violations, 0 console errors |
+| [`tests/e2e/editor.spec.mjs`](../tests/e2e/editor.spec.mjs) | new project, JavaScript -> blocks, the simulator runs it (pixel check) in a frame with `sandbox="allow-scripts"` where cookies, storage, the parent page and `/api/profiles` are blocked, the `.png` cartridge downloads; 0 external requests, 0 service workers (with service workers allowed), 0 CSP violations, 0 console errors. No cloud UI: no sign-in, no share, no GitHub button, no Extensions category or menu entry, no AI error help, home page with "My Projects" only and no links out of the site. Languages: Greek by default, exactly en + el in the language menu, English chosen there is remembered after reload, `?lang=el` forces Greek |
+| [`tests/e2e/play.spec.mjs`](../tests/e2e/play.spec.mjs) | compiles a program with the packaged runner (`run.html?code=...&sendBuilt=1`), then `play.html?id=1` (the test answers `/api/lab/games/1/binary`) runs it without the editor at 1280x800 (keyboard), 820x1180 and 1180x820 (on-screen d-pad moves the sprite); the frame is `sandbox="allow-scripts"` and inside it `document.cookie`, `localStorage`, `window.parent.document` and `fetch('/api/profiles')` all fail; no editor/compiler files loaded, 0 external, 0 CSP violations, 0 console errors. Refusals: `?src=...`, `?id=../x`, `?id=1x`, an absolute URL, 10 digits, an extra parameter and no parameter fetch nothing, create no frame and show «Αυτό το παιχνίδι δεν υπάρχει...» |
 
 Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play` (CSP blocks in
-[`makecode/csp.mjs`](../makecode/csp.mjs); `EDITOR_TIGHT=1` = the recommended editor pair), `SW=allow`,
+[`makecode/csp.mjs`](../makecode/csp.mjs); `EDITOR_TIGHT=1` = the recommended editor pair), `SW=block` (default: service workers allowed, so "0 registered" is meaningful; Playwright's block mode also throws a console error inside sandboxed frames),
 `HUB_HEADERS=1` (the games-hub security headers incl. `X-Frame-Options: DENY` and `Permissions-Policy`).
 
 ```
-SW=allow npx playwright test tests/e2e/editor.spec.mjs
+npx playwright test tests/e2e/editor.spec.mjs
 CSP=editor EDITOR_TIGHT=1 HUB_HEADERS=1 npx playwright test tests/e2e/editor.spec.mjs
 CSP=play HUB_HEADERS=1 npx playwright test tests/e2e/play.spec.mjs
 CSP=strict npx playwright test tests/e2e/play.spec.mjs --grep desktop   # must FAIL: the game needs 'unsafe-eval'
@@ -90,10 +91,42 @@ three Playwright runs above plus the strict-CSP negative check, then the tarball
 and the check results (`test-results/*.json`, build log, Greek coverage table) as `check-results`. Job `release`
 (only for `v*` tags, `permissions: contents: write` in that job only): attaches the tarball to the GitHub release.
 
+## Player security
+
+A published game is compiled JavaScript made by a child in the editor. The hub trusts it only as "a game the family
+published", never as code that may act for the family. Therefore:
+
+
+- **Only `?id=<1-9 digits>`.** [`makecode/player/play.js`](../makecode/player/play.js) accepts exactly one query
+  parameter, `id`, matching `^[0-9]{1,9}$`, and builds the URL itself: `/api/lab/games/<id>/binary`. There is no
+  `src` parameter, no path and no absolute URL; anything else shows a Greek message and fetches nothing.
+- **Sandboxed simulator frame.** Player and editor run the game in `<iframe sandbox="allow-scripts">` without
+  `allow-same-origin`: the frame has an opaque origin (`null`), so the game's code (which runs with `'unsafe-eval'`
+  in that frame) cannot read the site's cookies (the `__Host-` unlock session) or localStorage, cannot touch the
+  parent page, and its `fetch` to `/api/*` is cross-origin without cookies (and blocked by the frame's
+  `connect-src 'none'`). The play page loads no MakeCode script of its own: it talks to the frame only by
+  `postMessage`, ignores messages whose `event.source` is not its frame, and handles only `ready` and the restart
+  command, with shape checks. The editor's simulator works sandboxed too (patch in "Patches and why"); measured in
+  both specs: `document.cookie`, `localStorage`, `window.parent.document` throw `SecurityError`, `fetch('/api/profiles')`
+  fails, and the game still runs (pixel check, keys, on-screen d-pad).
+- **Headers this needs on the lab paths:** the frame's own files (`simulator.html`, `pxtsim.js`, `sim.js`, `sim.css`)
+  are loaded by an opaque origin, i.e. cross-origin, so the hub's `Cross-Origin-Resource-Policy: same-origin` blocks
+  them (`net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`, measured). These four public static files need
+  `Cross-Origin-Resource-Policy: cross-origin` (`makecode/serve.mjs --hub-headers` does exactly that); all other lab
+  files keep `same-origin`.
+- **Server side (games-hub ADR-0006, `/api/lab/*`):** the binary is trusted only as "a game the family published".
+  At publish time the hub checks its size (2 MB gzip cap, spec §12a.6), its JSON shape (`js` string, `fnArgs` object,
+  `parts` / `usedBuiltinParts` arrays) and stores its sha256; it serves it as `application/json` with `nosniff`.
+  Compiling games on the server is out of scope.
+
 ## Known limits
 
 - The simulator is used as compiled by Microsoft (`sim.js` from npm); a MakeCode upgrade = new `ARCADE_TAG`, a new
-  build and the checks; the simulator page's ids/classes must still match what `sim.js` looks up.
+  build and the checks; the simulator page's ids/classes must still match what `sim.js` looks up, and the sandbox
+  patch must still find its three code patterns (the build stops otherwise).
 - The tarball is about 43 MB because it carries the `.gz` and `.br` files next to the originals (16 MB without them).
 - MakeCode's own home page is kept (My Projects, New Project, Import from file); the lab's pages come in the next work
-  package.
+  package. The Download button's menu still shows a "Choose hardware" entry (it opens an empty hardware list); the
+  child's backup is the save button (the `.png` cartridge).
+- The play page and the simulator frame work under the hub CSP blocks of `makecode/csp.mjs` (play mode), with the
+  CORP exception above.

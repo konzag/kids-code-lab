@@ -1,7 +1,7 @@
 // The play-only page (makecode/player) runs a compiled game without the editor (docs/BUILD.md, spike §7).
 // 1. compile a small program with the packaged runner (run.html?code=...&sendBuilt=1 posts the pxtc
 //    BuiltSimJsInfo JSON to its parent): the artefact the hub stores at publish time.
-// 2. play.html (pxtsim.js + simulator.html only) runs it; on a tablet (820x1180 portrait, 1180x820 landscape) the
+// 2. play.html?id=1 (no MakeCode script; simulator.html in a sandbox="allow-scripts" frame) runs it; on a tablet (820x1180 portrait, 1180x820 landscape) the
 //    on-screen d-pad and A/B are shown and move the sprite. Every request must stay on 127.0.0.1.
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -18,6 +18,8 @@ const PROGRAM = [
 ].join("\n");
 const RED = "255,33,33,255"; // palette colour 2
 let built;
+
+const liveSim = (page) => page.frames().filter((f) => !f.isDetached() && /simulator\.html/.test(f.url())).pop();
 
 async function screenPixel(page, xFrac, yFrac) {
   // the simulator driver may replace its frame; take the live one
@@ -55,8 +57,9 @@ for (const vp of [{ name: "desktop", width: 1280, height: 800 }, { name: "tablet
     const body = JSON.stringify(built);
     const loaded = [];
     page.on("response", async (r) => loaded.push({ path: new URL(r.url()).pathname, bytes: (await r.body().catch(() => Buffer.alloc(0))).length }));
-    await page.route("**/kids-code-lab/play/game.json", (route) => route.fulfill({ contentType: "application/json", body }));
-    await page.goto("/kids-code-lab/play/play.html?src=game.json");
+    // the hub API of a published game (games-hub ADR-0006), answered by the test
+    await page.route("**/api/lab/games/1/binary", (route) => route.fulfill({ contentType: "application/json", body }));
+    await page.goto("/kids-code-lab/play/play.html?id=1");
 
     // background red at a corner, yellow sprite in the middle
     await expect.poll(() => screenPixel(page, 0.02, 0.02), { timeout: 60_000 }).toBe(RED);
@@ -87,17 +90,56 @@ for (const vp of [{ name: "desktop", width: 1280, height: 800 }, { name: "tablet
     // the sprite left the middle
     await expect.poll(() => screenPixel(page, 0.5, 0.5), { timeout: 5_000 }).toBe(RED);
 
+    // the game runs in an opaque-origin sandbox: no cookies, no storage, no same-origin API calls
+    const frameEl = page.locator("#player iframe");
+    expect(await frameEl.getAttribute("sandbox")).toBe("allow-scripts");
+    // the probe below provokes errors/violations on purpose (blocked fetch); the checks use the state before it
+    const errorsBeforeProbe = [...errors];
+    const violationsBeforeProbe = [...rec.violations];
+    const probe = await liveSim(page).evaluate(async () => {
+      const r = { origin: self.origin };
+      try { r.cookie = document.cookie; } catch (e) { r.cookie = "blocked:" + e.name; }
+      try { r.storage = localStorage.length; } catch (e) { r.storage = "blocked:" + e.name; }
+      try { r.parentDom = !!window.parent.document; } catch (e) { r.parentDom = "blocked:" + e.name; }
+      try { const res = await fetch("/api/profiles"); r.fetch = "status " + res.status; } catch (e) { r.fetch = "blocked:" + e.name; }
+      return r;
+    });
+    expect(probe.origin).toBe("null");
+    expect(String(probe.cookie)).toMatch(/^blocked:/);
+    expect(String(probe.storage)).toMatch(/^blocked:/);
+    expect(String(probe.parentDom)).toMatch(/^blocked:/);
+    expect(String(probe.fetch)).toMatch(/^blocked:/);
+
     mkdirSync("test-results", { recursive: true });
     await page.screenshot({ path: `test-results/play-${vp.name}.png` });
     writeFileSync(`test-results/play-${vp.name}.json`, JSON.stringify({
       csp: process.env.CSP ?? "none", viewport: vp, builtJsBytes: body.length, builtJsGzipBytes: gzipSync(body).length,
-      byHost: summarize(rec.requests), external: rec.external, violations: rec.violations, consoleErrors: errors,
-      playPageLoads: loaded,
+      byHost: summarize(rec.requests), external: rec.external, violations: violationsBeforeProbe, consoleErrors: errorsBeforeProbe,
+      sandboxProbe: probe, playPageLoads: loaded,
     }, null, 1));
     expect(loaded.map((l) => l.path).filter((p) => /main\.js|target\.js|pxtembed\.js|pxtworker\.js/.test(p)), "no editor/compiler on the play page").toEqual([]);
     expect(rec.external, "requests outside 127.0.0.1").toEqual([]);
-    expect(rec.violations, "CSP violations").toEqual([]);
-    expect(errors, "console errors").toEqual([]);
+    expect(violationsBeforeProbe, "CSP violations").toEqual([]);
+    expect(errorsBeforeProbe, "console errors").toEqual([]);
     await context.close();
+  });
+}
+
+// Only ?id=<1-9 digits> is accepted; anything else fetches and runs nothing and shows a Greek message.
+for (const qs of ["?src=/kids-code-lab/play/x.json", "?id=../x", "?id=1x", "?id=" + encodeURIComponent("http://127.0.0.1:1/x"),
+  "?id=1234567890", "?id=1&src=x", ""]) {
+  test(`play page refuses "${qs || "(no parameter)"}"`, async ({ context }) => {
+    const rec = await recordAll(context);
+    const page = await context.newPage();
+    watchPage(page, rec);
+    const asked = [];
+    await page.route("**/api/**", (route) => { asked.push(route.request().url()); return route.fulfill({ contentType: "application/json", body: JSON.stringify(built) }); });
+    await page.goto(`/kids-code-lab/play/play.html${qs}`);
+    await expect(page.locator("#status")).toHaveText(/δεν υπάρχει/);
+    await page.waitForTimeout(500);
+    expect(asked, "no game fetched").toEqual([]);
+    await expect(page.locator("iframe")).toHaveCount(0);
+    const paths = rec.requests.map((u) => new URL(u).pathname);
+    expect(paths.filter((p) => !/\/play\/play\.(html|js|css)$/.test(p)), "only the page itself loaded").toEqual([]);
   });
 }

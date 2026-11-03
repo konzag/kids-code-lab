@@ -58,7 +58,34 @@ for (const f of readdirSync(out, { withFileTypes: true }).filter((e) => e.isFile
   writeFileSync(p, js.split('"autoplay;microphone"').join('"autoplay"'));
   mic++;
 }
-console.log(`patch-output: ${patched} html without telemetry, ${cdn} html with empty cdnUrl, ${simStrings} empty sim-strings, ${mic} js without microphone; removed ${removed.join(", ") || "nothing"}`);
+// 5. the editor's simulator frame runs SANDBOXED without allow-same-origin (opaque origin), like the play page:
+//    the child's compiled game runs with 'unsafe-eval' in that frame and must not reach the hub's cookies, storage
+//    or /api/* (docs/BUILD.md "Player security"). pxsim's SimulatorDriver needs three changes for that:
+//    a) iframe sandbox "allow-same-origin allow-scripts" -> "allow-scripts" (only the simulator frame, recognised by
+//       the allow="autoplay" set just before it; docs/extension frames are untouched),
+//    b) messages TO the frame: targetOrigin "*" (an opaque origin cannot be named; the window reference pins the
+//       receiver),
+//    c) messages FROM the frame: origin "null" is accepted only when ev.source is one of the driver's own simulator
+//       frames (all other origins are checked against the allow-list exactly as before).
+const SANDBOX_RE = /(\.setAttribute\("allow","autoplay"\),(\w+)\.setAttribute\("sandbox",)"allow-same-origin allow-scripts"/g;
+const ORIGIN_RE = /\.dataset\.origin=new URL\((\w+)\)\.origin\|\|"\*"/g;
+const LISTEN_RE = /this\._allowedOrigins\.indexOf\((\w+)\.origin\)<0/g;
+const sandboxed = [];
+for (const f of ["pxtsim.js", "pxtembed.js", "pxtapp.js"]) {
+  const p = join(out, f);
+  if (!existsSync(p)) continue;
+  const js = readFileSync(p, "utf8");
+  const a = (js.match(SANDBOX_RE) || []).length, b = (js.match(ORIGIN_RE) || []).length, c = (js.match(LISTEN_RE) || []).length;
+  if (a === 0 && b === 0 && c === 0) continue; // already patched
+  if (a !== 1 || b !== 1 || c !== 1) throw new Error(`patch-output: simulator sandbox patch does not fit ${f} (${a}/${b}/${c}); check the pxt-core version`);
+  const next = js
+    .replace(SANDBOX_RE, '$1"allow-scripts"')
+    .replace(ORIGIN_RE, '.dataset.origin="*"')
+    .replace(LISTEN_RE, (_m, v) => `(this._allowedOrigins.indexOf(${v}.origin)<0&&!("null"===${v}.origin&&this.simFrames().some(kclF=>kclF.contentWindow===${v}.source)))`);
+  writeFileSync(p, next);
+  sandboxed.push(f);
+}
+console.log(`patch-output: ${patched} html without telemetry, ${cdn} html with empty cdnUrl, ${simStrings} empty sim-strings, ${mic} js without microphone, simulator sandboxed in [${sandboxed.join(", ")}]; removed ${removed.join(", ") || "nothing"}`);
 
 if (slim) {
   // keep-list (top level). Everything else in the package is the docs site or another sub-app.
