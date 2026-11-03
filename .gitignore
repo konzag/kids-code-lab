@@ -1,0 +1,9 @@
+node_modules/
+built/
+dist/
+test-results/
+playwright-report/
+.env
+*.token
+.venv/
+__pycache__/
