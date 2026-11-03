@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Εργαστήρι Κώδικα</title>
+  <link rel="stylesheet" href="/static/fonts/comfortaa.css">
+  <link rel="stylesheet" href="lab.css">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <script type="module" src="home.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Μετάβαση στο περιεχόμενο</a>
+  <header class="bar">
+    <a href="/" id="back-hub">🏠 Πίσω στα παιχνίδια</a>
+    <h1><img class="icon" src="icon.svg" alt=""> Εργαστήρι Κώδικα</h1>
+    <button type="button" class="btn secondary" id="theme" aria-pressed="false">🌙 Σκοτεινό</button>
+  </header>
+  <main id="main">
+    <section aria-labelledby="new-h">
+      <h2 id="new-h">Φτιάξε το δικό σου παιχνίδι</h2>
+      <p class="lead">Με τουβλάκια κώδικα, στον υπολογιστή ή στο tablet. Όλα μένουν σε αυτή τη συσκευή.</p>
+      <a class="btn" id="new-game" href="edit.html?new=1">➕ Νέο παιχνίδι</a>
+    </section>
+
+    <section aria-labelledby="mine-h">
+      <h2 id="mine-h">Τα παιχνίδια μου</h2>
+      <p class="lead">Τα παιχνίδια που έφτιαξες σε αυτή τη συσκευή. Αν σβηστούν τα δεδομένα του browser, χάνονται: κράτα αντίγραφο με το κουμπί αποθήκευσης μέσα στο εργαστήρι.</p>
+      <ul class="cards" id="projects" aria-live="polite"></ul>
+    </section>
+
+    <section aria-labelledby="learn-h">
+      <h2 id="learn-h">Μαθήματα</h2>
+      <p class="lead">Βήμα βήμα οδηγίες μέσα στο εργαστήρι (μερικά κείμενα είναι στα αγγλικά).</p>
+      <ul class="cards" id="tutorials"></ul>
+    </section>
+
+    <section aria-labelledby="pub-h">
+      <h2 id="pub-h">Δημοσιευμένα από αυτή τη συσκευή</h2>
+      <p class="lead">Όλα τα παιχνίδια της οικογένειας είναι στο ράφι <a href="/shelf">«Παιχνίδια που φτιάξαμε»</a>.</p>
+      <ul class="cards" id="published" aria-live="polite"></ul>
+      <p class="status" id="pub-status" role="status"></p>
+    </section>
+  </main>
+
+  <dialog id="confirm" aria-labelledby="confirm-h">
+    <h2 id="confirm-h">Απόσυρση από το ράφι;</h2>
+    <p id="confirm-text"></p>
+    <div class="actions">
+      <button type="button" class="btn secondary" id="confirm-no">Όχι</button>
+      <button type="button" class="btn danger" id="confirm-yes">Ναι, απόσυρση</button>
+    </div>
+  </dialog>
+</body>
+</html>

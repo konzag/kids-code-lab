@@ -42,6 +42,7 @@ set(th, "shareToKiosk", false);
 set(th, "hideShareEmbed", true);
 set(th, "allowPackageExtensions", false);
 set(th, "forceEnableAiErrorHelp", false);
+set(th, "showOpenInVscode", false); // "Open in VS Code" (vscode.dev, cloud) under the JavaScript view
 del(th, "githubUrl");
 del(th, "feedbackUrl");
 // links out of the site (footer of the home page, help menu, feedback frame): a child stays inside the lab.

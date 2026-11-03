@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Εργαστήρι Κώδικα: επεξεργαστής</title>
+  <link rel="stylesheet" href="/static/fonts/comfortaa.css">
+  <link rel="stylesheet" href="lab.css">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <script type="module" src="edit.js"></script>
+</head>
+<body class="editor-page">
+  <header class="bar">
+    <a href="index.html" id="back">🏠 Πίσω</a>
+    <h1><img class="icon" src="icon.svg" alt=""> Εργαστήρι Κώδικα</h1>
+    <button type="button" class="btn secondary" id="theme" aria-pressed="false">🌙 Σκοτεινό</button>
+    <button type="button" class="btn" id="publish-open">📤 Δημοσίευση στο hub</button>
+  </header>
+  <p class="narrow-note" id="narrow-note">Το εργαστήρι θέλει tablet ή υπολογιστή. Από το κινητό μπορείς να
+    <a href="/shelf">παίξεις τα παιχνίδια που φτιάξαμε</a>.</p>
+  <iframe id="editor-frame" title="Επεξεργαστής MakeCode Arcade"></iframe>
+
+  <dialog id="publish" aria-labelledby="publish-h">
+    <form id="publish-form" method="dialog" novalidate>
+      <h2 id="publish-h">Δημοσίευση στο hub</h2>
+      <p class="status" id="prep-status" role="status">Ετοιμάζω το παιχνίδι…</p>
+      <div class="cover">
+        <img id="cover" alt="Η εικόνα του παιχνιδιού (κασέτα)" hidden>
+        <p class="hint" id="cover-hint">Η εικόνα του παιχνιδιού κρατά και τον κώδικά του.</p>
+      </div>
+      <div class="field">
+        <label for="title">Τίτλος</label>
+        <input id="title" name="title" type="text" maxlength="40" required autocomplete="off"
+          placeholder="π.χ. Το κάστρο με τα αστέρια" aria-describedby="title-hint">
+        <span class="hint" id="title-hint">Έως 40 γράμματα. Όχι ονόματα ανθρώπων.</span>
+      </div>
+      <div class="field">
+        <label for="description">Περιγραφή</label>
+        <textarea id="description" name="description" maxlength="140" rows="3" aria-describedby="description-hint"></textarea>
+        <span class="hint" id="description-hint">Έως 140 γράμματα: τι κάνει ο παίκτης;</span>
+      </div>
+      <div class="field" id="profile-field">
+        <label for="profile">Ποιος το έφτιαξε</label>
+        <select id="profile" name="profile" required></select>
+        <span class="hint" id="profile-hint"></span>
+      </div>
+      <p class="status" id="publish-status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" class="btn secondary" id="publish-cancel">Άκυρο</button>
+        <button type="submit" class="btn" id="publish-submit" disabled>Δημοσίευση</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

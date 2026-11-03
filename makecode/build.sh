@@ -47,6 +47,8 @@ MSYS_NO_PATHCONV=1 node node_modules/pxt-core/built/pxt.js staticpkg --route "$R
 # 6. output patches + slim copy + play page + precompression + tarball
 OUT="built/packaged${ROUTE}"
 node "$HERE/patch-output.mjs" "$OUT" --slim "$WORK/slim"
-mkdir -p "$WORK/slim/play" && cp "$HERE"/player/play.* "$WORK/slim/play/"
+# play page (/kids-code-lab/play/?id=) and the lab's own pages (/kids-code-lab/lab/)
+rm -rf "$WORK/slim/play" "$WORK/slim/lab"
+mkdir -p "$WORK/slim/play" "$WORK/slim/lab" && cp "$HERE"/player/* "$WORK/slim/play/" && cp "$HERE"/lab/* "$WORK/slim/lab/"
 node "$HERE/pack.mjs" "$WORK/slim" "$WORK/kids-code-lab-$VERSION.tar.gz"
 du -sh "$OUT" "$WORK/slim"

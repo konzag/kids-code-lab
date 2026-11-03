@@ -4,22 +4,99 @@ The family's kids make their own small arcade games with blocks (MakeCode Arcade
 play them on the PC or tablet and, with a parent's family code, publish a finished game to a shelf in «Τα Παιχνίδια
 μας» (games-hub). No accounts, no cloud, nothing leaves the house.
 
-**Status: work package 1 of L1-27 (build, no deploy yet).** The approved spec is
-[docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md). The spike of spec §4 is done
-([docs/spike/SPIKE-REPORT.md](docs/spike/SPIKE-REPORT.md)): MakeCode Arcade runs fully offline from a static folder and
-gets its own static path on VM 106 (spec §12a.3), not a games-hub submodule.
+**Status: work package 2 of L1-27 (lab pages, no deploy yet).** Spec: [docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md).
+Spike of spec §4: [docs/spike/SPIKE-REPORT.md](docs/spike/SPIKE-REPORT.md). Build, patches and checks:
+[docs/BUILD.md](docs/BUILD.md). Hub side (shelf page, landing card, `/api/lab/*`): games-hub ADR-0006, built in
+games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-Done in work package 1:
-- reproducible offline build of MakeCode Arcade with our own simulator page and stylesheet, Greek by default with
-  English selectable, the cloud UI (sign-in, share, GitHub, extensions, AI help) and the hardware variants removed,
-  no telemetry, no service worker ([docs/BUILD.md](docs/BUILD.md));
-- a small play-only page for published games (`makecode/player/`): only `?id=<digits>`, the game runs in a
-  sandboxed frame without access to the family's session (the editor's simulator is sandboxed the same way);
-- CI on GitHub-hosted runners: build, Playwright checks (0 requests outside the site, no service worker, editor and
-  simulator work, play page on desktop and tablet, the CSPs for the hub ADR), the release tarball as an artifact and,
-  on a `v*` tag, on the GitHub release.
+## Features
 
-Not yet: the lab pages (home, publish dialog), the hub shelf and `/api/lab/*` (games-hub ADR), the deploy (infra
-request), the README sections of GAME-STANDARD v1.3 §2a (test list `KCL-01..`).
+- **Αρχική του εργαστηρίου** (`/kids-code-lab/lab/`): «Νέο παιχνίδι», «Τα παιχνίδια μου» (τα έργα του MakeCode σε αυτή
+  τη συσκευή), «Μαθήματα» (5 οδηγοί του MakeCode που υπάρχουν offline), «Δημοσιευμένα από αυτή τη συσκευή» με
+  «Απόσυρση», «🏠 Πίσω στα παιχνίδια». Φωτεινό / σκοτεινό θέμα που θυμάται τη συσκευή.
+- **Επεξεργαστής** (`/kids-code-lab/lab/edit.html`): ο MakeCode Arcade (μπλοκ, JavaScript, Python, προσομοιωτής)
+  με τη μπάρα του εργαστηρίου: «🏠 Πίσω», «Δημοσίευση στο hub». Ελληνικά από προεπιλογή, αγγλικά από το μενού γλώσσας
+  του MakeCode. Χωρίς σύνδεση λογαριασμού, κοινοποίηση, GitHub, επεκτάσεις, AI, υλικό (hardware). Στα 360 px:
+  «Το εργαστήρι θέλει tablet ή υπολογιστή».
+- **Δημοσίευση**: τίτλος (έως 40), περιγραφή (έως 140), «Ποιος το έφτιαξε» (προφίλ του hub), εικόνα-κασέτα (κρατά και
+  τον κώδικα). Χρειάζεται το ξεκλείδωμα του γονιού στη σελίδα «Προφίλ» του hub· το εργαστήρι δεν ζητά ποτέ κωδικό.
+  Όριο 2 MB (συμπιεσμένο) ανά παιχνίδι, ελέγχεται και στη συσκευή.
+- **Παίξε** (`/kids-code-lab/play/?id=<αριθμός>`): το παιχνίδι σε όλη την οθόνη, χωρίς επεξεργαστή, σε απομονωμένο
+  πλαίσιο· κουμπιά ⏸ 🔊 ⛶ 🏠, πληκτρολόγιο και αφή (χειριστήριο στην οθόνη).
+- **Πρόοδος για το hub** (GAME-STANDARD v1.3 §5a): κλειδί `game.kids-code-lab.v1`, αντικείμενο `hub`.
 
-Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+### Badges
+
+| milestone | πότε |
+|---|---|
+| `first-project` | το πρώτο έργο αποθηκεύτηκε στη συσκευή |
+| `first-publish` | πρώτη επιτυχημένη δημοσίευση από τη συσκευή |
+| `publish-5` | πέμπτη επιτυχημένη δημοσίευση από τη συσκευή |
+
+**Ολοκλήρωση** (`completed`, `completedAt` μία φορά): το πρώτο δημοσιευμένο παιχνίδι («πρώτο δημοσιευμένο
+παιχνίδι», spec §12a.9). Τα `tutorial-1..5` του spec δεν μπαίνουν: ο επεξεργαστής δεν αναφέρει ολοκληρωμένα μαθήματα.
+
+## Οθόνες και ροή
+
+1. Κάρτα «Εργαστήρι Κώδικα» στο hub → **Αρχική του εργαστηρίου**.
+2. «➕ Νέο παιχνίδι» ή ένα από «Τα παιχνίδια μου» ή ένα «Μάθημα» → **Επεξεργαστής**.
+3. «📤 Δημοσίευση στο hub» → διάλογος: «Ετοιμάζω το παιχνίδι…» → «Έτοιμο: N KB από τα 2048 KB.» → τίτλος, περιγραφή,
+   προφίλ → «Δημοσίευση» → «Το παιχνίδι μπήκε στο ράφι του hub. Παίξε το».
+4. Χωρίς ξεκλείδωμα: «Χρειάζεται ο γονιός: ξεκλείδωσε πρώτα στη σελίδα «Προφίλ» του hub…».
+5. Αρχική → «Δημοσιευμένα από αυτή τη συσκευή» → «Απόσυρση» → «Ναι, απόσυρση» → «Το παιχνίδι αποσύρθηκε από το ράφι.»
+
+## Λίστα χειροκίνητων δοκιμών
+
+Σε κάθε μέγεθος: 1280, 820x1180, 1180x820, 360· φωτεινό και σκοτεινό· πληκτρολόγιο και αφή.
+
+| # | Βήματα | Αναμενόμενο |
+|---|---|---|
+| KCL-01 | Άνοιξε την κάρτα «Εργαστήρι Κώδικα» στο hub | Η Αρχική, ελληνικά, «Νέο παιχνίδι», «Τα παιχνίδια μου», «Μαθήματα», «🏠 Πίσω στα παιχνίδια» |
+| KCL-02 | Πάτα «🌙 Σκοτεινό», ανανέωσε τη σελίδα | Σκοτεινό θέμα και μετά την ανανέωση |
+| KCL-03 | «Νέο παιχνίδι» | Ο επεξεργαστής με μπλοκ στα ελληνικά, μπάρα «🏠 Πίσω» / «Δημοσίευση στο hub» |
+| KCL-04 | Φτιάξε «όταν ξεκινά: χρώμα φόντου κόκκινο», δες τον προσομοιωτή | Κόκκινη οθόνη στον προσομοιωτή· στο tablet φαίνεται το χειριστήριο |
+| KCL-05 | «🏠 Πίσω» | Το έργο είναι στο «Τα παιχνίδια μου» και ανοίγει ξανά |
+| KCL-06 | Ένα «Μάθημα» | Ο οδηγός ανοίγει μέσα στον επεξεργαστή |
+| KCL-07 | Ρυθμίσεις ⚙ → Γλώσσα → English, ανανέωση | Ο επεξεργαστής στα αγγλικά και μετά την ανανέωση· μόνο English / Ελληνικά στη λίστα |
+| KCL-08 | Στον επεξεργαστή: «Λήψη» και «…» | Καμία σύνδεση λογαριασμού, κοινοποίηση, GitHub, Επεκτάσεις, «Επιλέξτε Υλικό» |
+| KCL-09 | Κουμπί αποθήκευσης δίπλα στο όνομα | Κατεβαίνει η κασέτα `.png`· με «Εισαγωγή» ανοίγει ξανά το έργο |
+| KCL-10 | Χωρίς ξεκλείδωμα: «Δημοσίευση στο hub» | Μήνυμα για τη σελίδα «Προφίλ», σύνδεσμος, κουμπί «Δημοσίευση» ανενεργό· κανένα πεδίο κωδικού |
+| KCL-11 | Ξεκλείδωσε στο «Προφίλ» του hub (δοκιμαστικό προφίλ), «Δημοσίευση στο hub» | «Έτοιμο…», εικόνα-κασέτα, λίστα προφίλ |
+| KCL-12 | Τίτλος 41 γράμματα / κενός | Το πεδίο δεν δέχεται πάνω από 40· κενός: «Γράψε έναν τίτλο για το παιχνίδι.» |
+| KCL-13 | «Δημοσίευση» | «Το παιχνίδι μπήκε στο ράφι του hub. Παίξε το»· το παιχνίδι είναι στο ράφι «Παιχνίδια που φτιάξαμε» |
+| KCL-14 | «Παίξε το» | Το παιχνίδι σε όλη την οθόνη· βελάκια και χειριστήριο αφής κινούν τον ήρωα |
+| KCL-15 | ⏸ και μετά ▶, 🔊, ⛶, 🏠 | ⏸ σταματά (μήνυμα), ▶ ξεκινά από την αρχή· σίγαση· πλήρης οθόνη· πίσω στο hub |
+| KCL-16 | Αρχική → «Απόσυρση» → «Ναι, απόσυρση» | «Το παιχνίδι αποσύρθηκε από το ράφι.»· φεύγει από το ράφι, μένει στη συσκευή |
+| KCL-17 | Στα 360 px: Αρχική και «Νέο παιχνίδι» | Η Αρχική δουλεύει· ο επεξεργαστής δείχνει «Το εργαστήρι θέλει tablet ή υπολογιστή» |
+| KCL-18 | Απενεργοποιημένη αποθήκευση στο hub (γονιός) και «Δημοσίευση» | «Η αποθήκευση στο σπίτι δεν είναι ενεργή τώρα. Δοκίμασε αργότερα.» |
+
+Αυτόματες δοκιμές: `node --test tests/unit/core.test.mjs` (KCL-U01..U12) και Playwright (`tests/e2e/`, docs/BUILD.md).
+
+## Τι άλλαξε
+
+- 2026-11-03, WP2 (`list1/l1-27-wp2`): σελίδες του εργαστηρίου, δημοσίευση, απόσυρση, κουμπιά κελύφους στο «Παίξε»,
+  πρόοδος §5a, χωρίς «Επιλέξτε Υλικό» και «Open in VS Code» (KCL-01..18).
+- 2026-11-03, WP1 (`list1/l1-27-wp1`): offline build, δικός μας προσομοιωτής, ελληνικά, χωρίς cloud, CI.
+
+## Γνωστοί περιορισμοί
+
+- Τα έργα ζουν μόνο στον browser της συσκευής (IndexedDB του MakeCode). Αν σβηστούν τα δεδομένα του browser, χάνονται
+  όσα δεν έχουν κασέτα `.png` ή δεν δημοσιεύτηκαν.
+- Η ελληνική μετάφραση του MakeCode είναι μερική: πολλά μπλοκ του Arcade («Sprites», «set background color to») είναι
+  στα αγγλικά. Οι οδηγοί «Μαθήματα» είναι κυρίως στα αγγλικά.
+- ⏸ στο «Παίξε» σταματά το παιχνίδι και το ▶ το ξεκινά από την αρχή: ο προσομοιωτής του MakeCode δεν έχει παύση από
+  έξω. Πραγματική παύση μέσα στο παιχνίδι δίνει το κουμπί «Menu» της κονσόλας.
+- Τα πλήκτρα P/Esc, M, F του κελύφους δεν δουλεύουν όταν το παιχνίδι έχει το focus (το πλαίσιο του παιχνιδιού είναι
+  απομονωμένο και κρατά τα πλήκτρα)· τα κουμπιά δουλεύουν πάντα.
+- Η «Απόσυρση» γίνεται μόνο από τη συσκευή που δημοσίευσε (κρατά το κλειδί απόσυρσης)· τα υπόλοιπα τα αφαιρεί ο γονιός
+  από το ράφι του hub.
+- Ο ίδιος ο επεξεργαστής MakeCode δεν ελέγχεται με axe (δεν είναι δικός μας κώδικας)· οι σελίδες του εργαστηρίου ναι.
+
+## Ασφαλής δοκιμή
+
+Δοκίμασε με δοκιμαστικό προφίλ του hub και σε ιδιωτικό παράθυρο του browser, ποτέ πάνω στα έργα και στην πρόοδο των
+παιδιών. Ό,τι δημοσιεύεις για δοκιμή, απόσυρέ το μετά (KCL-16).
+
+## Αναφορά προβλήματος
+
+GitHub issue σε αυτό το repo, χωρίς προσωπικά δεδομένα (όχι ονόματα παιδιών, όχι φωτογραφίες, όχι κωδικούς).

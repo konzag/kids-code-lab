@@ -19,7 +19,7 @@ const cspMode = opt("csp", "none");
 const blockSw = args.includes("--block-sw");
 // --hub-headers: the games-hub SECURITY_HEADERS (app/core/middleware.py) on every response, to show what breaks
 const HUB = args.includes("--hub-headers") ? {
-  "x-frame-options": process.env.HUB_XFO ?? "DENY", "referrer-policy": "no-referrer", "cross-origin-opener-policy": "same-origin",
+  "x-frame-options": process.env.HUB_XFO ?? "SAMEORIGIN", // ADR-0006: SAMEORIGIN on the lab paths "referrer-policy": "no-referrer", "cross-origin-opener-policy": "same-origin",
   "cross-origin-resource-policy": "same-origin",
   "permissions-policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()",
 } : {};
