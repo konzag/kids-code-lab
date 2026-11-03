@@ -1,0 +1,12 @@
+{
+  "name": "kcl-spike-scripts",
+  "private": true,
+  "type": "module",
+  "description": "KIDS-CODE-LAB spike (L1-27): static MakeCode Arcade build checks. Not part of the product.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
