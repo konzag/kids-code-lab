@@ -20,6 +20,11 @@ async function newProject(page, name = "spike") {
   await tour.waitFor({ state: "visible", timeout: 15_000 }).then(() => tour.click()).catch(() => {});
 }
 
+// after a (re)load MakeCode shows either the editor or its home page; both exist in the DOM, one is hidden
+async function editorOrHome(page) {
+  await page.locator(".blocklySvg:visible, .newprojectcard:visible").first().waitFor({ timeout: 90_000 });
+}
+
 function save(name, rec, errors, extra = {}) {
   mkdirSync("test-results", { recursive: true });
   writeFileSync(`test-results/editor-${name}.json`, JSON.stringify({
@@ -169,15 +174,15 @@ test("languages: Greek by default, English selectable, only en/el offered", asyn
   await expect(langDialog.locator("#langmodalfooter")).toHaveCount(0);
   await langDialog.locator(".langoption[aria-label=English]").click();
   await page.waitForLoadState("load");
-  await page.waitForSelector(".blocklySvg, .newprojectcard", { timeout: 90_000 });
+  await editorOrHome(page);
   expect(await page.evaluate(() => pxt.Util.userLanguage())).toBe("en");
   await page.reload();
-  await page.waitForSelector(".blocklySvg, .newprojectcard", { timeout: 90_000 });
+  await editorOrHome(page);
   expect(await page.evaluate(() => pxt.Util.userLanguage()), "English remembered after reload").toBe("en");
 
   // the lab page can force a language with ?lang=
   await page.goto("/kids-code-lab/index.html?lang=el");
-  await page.waitForSelector(".blocklySvg, .newprojectcard", { timeout: 90_000 });
+  await editorOrHome(page);
   expect(await page.evaluate(() => pxt.Util.userLanguage())).toBe("el");
 
   save("languages", rec, errors, { languageOptions: labels });
