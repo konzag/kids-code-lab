@@ -139,6 +139,12 @@ test("editor: no cloud UI (sign-in, share, GitHub, extensions, AI, cloud import)
     expect(items.filter((t) => bad.test(t)), `settings menu entry ${bad}`).toEqual([]);
   }
   await page.keyboard.press("Escape");
+  // Download options menu (the "..." next to Download): no hardware entry (spec §11, no hardware)
+  await page.locator(".hw-button").first().click();
+  const dlItems = (await page.locator("[role=menuitem]:visible").allInnerTexts()).map((t) => t.trim()).filter(Boolean);
+  expect(dlItems.length, "download options menu opened").toBeGreaterThan(0);
+  expect(dlItems.filter((t) => /hardware|υλικό|εξοπλισμός/i.test(t)), `download menu: ${dlItems.join(" | ")}`).toEqual([]);
+  await page.keyboard.press("Escape");
   // AI error help: make a JavaScript error and check that no "Explain with AI" control appears
   await page.locator(".javascript-menuitem").first().click();
   await page.waitForSelector(".monaco-editor textarea", { timeout: 60_000 });

@@ -53,6 +53,10 @@ if (Array.isArray(th.docMenu) && th.docMenu.length) set(th, "docMenu", [], "docM
 del(th, "homeScreenHero");
 del(th, "homeScreenHeroGallery");
 del(th, "socialOptions");
+// NOT allowParentController: with it MakeCode switches to the "iframe" workspace and stores projects in the
+// parent page (measured: "workspace: iframe", the editor never opened). The lab drives the editor with MakeCode's
+// hash commands instead (#newproject, #header:<id>, #tutorial:<path>).
+if (th.allowParentController) del(th, "allowParentController");
 
 // --- Hardware off (spec §11: no flashing). Without the hardware variants and the *prj/hw---* packages the build
 // needs no makecode.com cloud compiler, and the editor never touches WebUSB.
@@ -72,6 +76,10 @@ if (!keepHw) {
   set(t.compile, "webUSB", false, "compile.webUSB");
   set(th, "checkForHwVariantWebUSB", false);
   set(th, "preferWebUSBDownload", false);
+  // The Download options menu shows «Επιλέξτε Υλικό» / "Choose Hardware" whenever
+  // simulator.dynamicBoardDefinition is set (main.js: y = simulator.dynamicBoardDefinition); with no hardware
+  // variants it opened an empty list. Off: the editor uses the default Arcade board only.
+  if (t.simulator) set(t.simulator, "dynamicBoardDefinition", false, "simulator.dynamicBoardDefinition");
 }
 
 writeFileSync(pxtargetPath, JSON.stringify(t, null, 4) + "\n");
