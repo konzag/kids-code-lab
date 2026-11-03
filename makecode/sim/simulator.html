@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  KIDS-CODE-LAB: simulator frame of the packaged MakeCode Arcade editor and of the play page.
+  The ids and class names are the interface the compiled simulator (pxt-arcade built/sim.js) looks up.
+  The two SVG controls are based on microsoft/pxt-arcade share/src/components/GameButtons.tsx and Joystick.tsx
+  (commit 2d7d59b5226e8a1a1e05e8042dd9f5248ed68fea, MIT, Copyright (c) Microsoft Corporation; see
+  THIRD-PARTY-NOTICES.md); colours come from sim.css variables. Everything else in this file is our own.
+  /cdn/ and /sim/ are rewritten by pxt staticpkg to the package route. No inline script, no inline style block.
+-->
+<html lang="el">
+
+<head>
+    <meta charset="utf-8">
+    <title>Προσομοιωτής</title>
+    <link rel="stylesheet" href="/sim/sim.css">
+    <script src="/cdn/pxtsim.js"></script>
+    <script src="/sim/sim.js"></script>
+</head>
+
+<body id="root">
+    <div id="wrap">
+        <div class="game-player">
+            <div id="debug-stats"></div>
+            <div class="game-embed">
+                <canvas id="game-screen" class="hidden" tabindex="0" role="application" aria-label="Οθόνη παιχνιδιού"></canvas>
+            </div>
+            <div class="game-sys-button-group">
+                <button class="game-sys-button game-menu-button no-select" type="button">Menu</button>
+                <button class="game-sys-button game-reset-button no-select" type="button" aria-label="Από την αρχή"><i></i></button>
+            </div>
+            <div id="joystick-container" class="game-joystick">
+                <svg xmlns="http://www.w3.org/2000/svg" class="game-joystick-svg" viewBox="1 0 40 40" width="200" height="200" aria-hidden="true">
+                    <circle class="joystick-background" cx="20" cy="20" r="16" fill="var(--sim-dpad-fill)" stroke="var(--sim-button-stroke)" stroke-width="2" />
+                    <rect class="dpad-up" x="16" y="6" width="8" height="12" rx="2" fill="var(--sim-text-color)" stroke="none" />
+                    <rect class="dpad-down" x="16" y="22" width="8" height="12" rx="2" fill="var(--sim-text-color)" stroke="none" />
+                    <rect class="dpad-right" x="22" y="16" width="12" height="8" ry="2" fill="var(--sim-text-color)" stroke="none" />
+                    <rect class="dpad-left" x="6" y="16" width="12" height="8" ry="2" fill="var(--sim-text-color)" stroke="none" />
+                    <circle cx="20" cy="20" r="6" fill="var(--sim-text-color)" />
+                    <circle class="joystick-handle" cx="20" cy="20" r="6" fill="var(--sim-button-fill)" stroke="var(--sim-joystick-handle-stroke)" stroke-width="2" />
+                </svg>
+            </div>
+            <div id="game-buttons-container" class="game-buttons">
+                <svg xmlns="http://www.w3.org/2000/svg" class="game-button-svg" viewBox="0 0 40 40" width="200" height="200" aria-hidden="true">
+                    <circle class="button-b" cx="13" cy="28" r="9" fill="var(--sim-button-fill)" stroke="var(--sim-button-stroke)" stroke-width="2.5" />
+                    <text class="label-b no-select" x="13" y="28" text-anchor="middle" dy="2.5" font-size="8">B</text>
+                    <circle class="button-a" cx="28" cy="11" r="9" fill="var(--sim-button-fill)" stroke="var(--sim-button-stroke)" stroke-width="2.5" />
+                    <text class="label-a no-select" x="28" y="11" text-anchor="middle" dy="2.5" font-size="8">A</text>
+                </svg>
+            </div>
+            <div class="game-player-background"></div>
+            <div class="game-player-msft" hidden></div>
+        </div>
+        <div id="safari-enable-game" class="safari-enable-game" hidden>
+            <div class="safari-enable-game-body">
+                <div class="title">Το παιχνίδι περιμένει</div>
+                <div class="body">Πάτα για να ξεκινήσει</div>
+                <button type="button">Ξεκίνα</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

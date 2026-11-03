@@ -1,0 +1,13 @@
+{
+  "name": "kids-code-lab",
+  "private": true,
+  "type": "module",
+  "description": "KIDS-CODE-LAB: offline MakeCode Arcade build and checks (docs/BUILD.md).",
+  "scripts": {
+    "build": "bash makecode/build.sh",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
