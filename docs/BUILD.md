@@ -42,10 +42,12 @@ compiler** any more (the hardware variants are removed, see below); CI fails if 
 | pxtarget `appTheme.defaultLocale` | `"el"` | Greek by default. Order in the editor: `?lang=` > MakeCode's `PXT_LANG` cookie (its language menu) > `defaultLocale`, so English chosen in the menu is remembered on the device |
 | pxtarget `appTheme.disableLiveTranslations` | `true` | otherwise a non-English UI fetches `makecode.com/api/translations` (68 requests per load in the spike) |
 | pxtarget `cloud.*` | `sharing, thumbnails, importing, packages, publishing, githubPackages, showBadges = false`, `cloudProviders = {}` | no share links, no cloud import, no Extensions category or extension search, no badges, no sign-in providers |
-| pxtarget `appTheme` | `identity, githubEditor, qrCode, shareToKiosk, allowPackageExtensions, forceEnableAiErrorHelp = false`, `hideShareEmbed = true` | no sign-in, no GitHub repos, no QR/kiosk sharing, no editor extensions, no AI error help |
+| pxtarget `appTheme` | `identity, githubEditor, qrCode, shareToKiosk, allowPackageExtensions, forceEnableAiErrorHelp, showOpenInVscode = false`, `hideShareEmbed = true` | no sign-in, no GitHub repos, no QR/kiosk sharing, no editor extensions, no AI error help, no "Open in VS Code" (vscode.dev) |
+| pxtarget `appTheme.allowParentController` | removed (never set) | with it MakeCode switches to its "iframe" workspace and stores projects in the parent page (measured: the editor never opened). The lab drives the editor with hash commands instead |
 | pxtarget `appTheme` | remove `githubUrl, feedbackUrl, logoUrl, organizationUrl, privacyUrl, termsOfUseUrl, ocvFrameUrl, homeScreenHero, homeScreenHeroGallery, socialOptions`; `docMenu = []` | no links out of the site (makecode.com, Microsoft terms/privacy, GitHub, forum), no hero carousel (its images had absolute `/static/` paths, 404) |
 | targetconfig `galleries = {}`, `hardwareOptions = []`, `shareLinks.approved = []` | | the home page shows only "My Projects" + "New Project"; no hardware dialog |
 | pxtarget hardware | remove `variants`, the `libs/hw---*` board packages and the hardware project templates `libs/d5prj, f4prj, rpiprj`; `compile.webUSB = false`, `checkForHwVariantWebUSB = false`, `preferWebUSBDownload = false` | spec §11 (no hardware flashing). The hardware hex cache was the only reason the build called the makecode.com cloud compiler (25 polls, 7 min); WebUSB probing caused a `usb` Permissions-Policy error under the hub headers |
+| pxtarget `simulator.dynamicBoardDefinition` | `false` | the Download options menu showed «Επιλέξτε Υλικό» / "Choose Hardware" whenever it is set, opening an empty list (no hardware variants). Test first: the check failed on wp1 with `download menu: Επιλέξτε Υλικό \| Λήψη ως αρχείο` |
 | output HTML | remove the `<!-- include apptracking.html -->` block; delete `ai.2.min.js` | Application Insights telemetry POSTed to `dc.services.visualstudio.com` on every load |
 | output HTML `pxtConfig.cdnUrl` | `""` | `pxt.Cloud.initRegionAsync()` did `new URL("geo", "/kids-code-lab/")` and logged "Unable to determine region" (console error); with an empty `cdnUrl` it returns "unknown" silently. `cdnUrl` is otherwise only used for cloud docs and the hardware hex cache |
 | output `locales/<lang>/sim-strings.json` | `{}` when missing | there are no approved Greek simulator strings; the simulator requested the file on every run (HTTP 404) |
@@ -61,6 +63,30 @@ one with `index.html?lang=el|en`. Greek coverage is partial (spike §6: about 48
 Arcade game blocks; `$WORK/locs-el.tsv` has the table of every build), so «Sprites», «Controller», «Scene» and most
 game blocks stay in English.
 
+## The lab's own pages
+
+Copied by `build.sh` from [`makecode/lab/`](../makecode/lab/) to `/kids-code-lab/lab/` and from
+[`makecode/player/`](../makecode/player/) to `/kids-code-lab/play/`. No inline script, no inline style, no build step
+(ES modules). The hub card links to `/kids-code-lab/lab/`.
+
+| File | What |
+|---|---|
+| `lab/core.js` | logic without DOM, unit-tested: settings + §5a `hub` object in `game.kids-code-lab.v1` (version, try/catch, migration, milestones `[a-z0-9-]` ≤ 32, ≤ 50, append-only, `completedAt` once), publish payload (title 1..40 and description ≤ 140 in code points, control/bidi characters removed, no HTML escaping: pages render with `textContent`), caps (cartridge ≤ 256 KB, binary ≤ 2 MB gzip via `CompressionStream`), Greek texts of every server answer, `?id=` parser, the «Μαθήματα» list |
+| `lab/index.html`, `home.js` | «Αρχική του εργαστηρίου»: new game, MakeCode's local projects (read-only from its IndexedDB `__pxt_idb_workspace_arcade___default`), tutorials, games published from this device with «Απόσυρση» (`DELETE /api/lab/games/<id>`, header `X-Lab-Unpublish`) |
+| `lab/edit.html`, `edit.js` | top bar («🏠 Πίσω», «Δημοσίευση στο hub») and the editor in a frame: `../index.html?editorlayout=ide&ws=browser#newproject` / `#header:<id>` / `#tutorial:/tutorials/<id>`. In a frame MakeCode would otherwise start in its read-only "sandbox" layout with an in-memory workspace (measured "workspace: mem", "Cannot edit in read-only editor"). The «Δημοσίευση» dialog: profiles from `GET /api/profiles` (401 = link to the hub «Προφίλ» page, never a PIN field), compile, cartridge, `POST /api/lab/games` |
+| `lab/mc.js` | the MakeCode bridge: projects from IndexedDB (never creates or upgrades MakeCode's database), compile with the packaged runner (`run.html?sendBuilt=1` in a hidden frame, `data-code` = `main.ts`, `data-assets` = the other `.ts`/`.jres` files, `deps` from `pxt.json`), the `.png` cartridge made like MakeCode's Save button (lzma of the project encoded into the image with the editor frame's own `pxt.lzmaCompressAsync` / `pxt.Util.encodeBlobAsync`, so it can be imported back) on a cover drawn by the lab |
+| `lab/lab.css`, `icon.svg` | Comfortaa from the hub (`/static/fonts/comfortaa.css`), text ≥ 18 px, light + dark (remembered switch, else `prefers-color-scheme`), workshop orange + chalkboard green |
+| `play/index.html`, `play.js`, `play.css` | the player (see "Player security"), hub shell buttons ⏸ 🔊 ⛶ 🏠. ⏸ stops the game and ▶ starts it again from the beginning: the MakeCode simulator has no external pause (its debugger pause needs a debug build; the Arcade "TogglePause" key only flips an unused flag; tested) |
+
+**API contract** (games-hub ADR-0006 and the contract of 2026-11-03, faked in
+[`tests/e2e/fake-hub.mjs`](../tests/e2e/fake-hub.mjs) with Playwright routes, no port):
+`POST /api/lab/games` JSON `{title, description, profile, cartridge (base64 PNG), binary (base64 of the gzipped game
+JSON)}` → 201 `{id, unpublish_token}`; 401 / 403 / 409 / 413 / 415 / 422 / 429 (+`Retry-After`) / 503 are shown in
+Greek. The `unpublish_token` is kept per game id in `game.kids-code-lab.v1` and sent only in the
+`X-Lab-Unpublish` header (never in a URL, a log or the console; the e2e test checks the request URLs and the console).
+`GET /api/lab/games/<id>/binary` = the gzip bytes with `Content-Encoding: gzip` (the browser decodes them; the fake
+returns the decoded JSON because Playwright's `route.fulfill` does not decode).
+
 ## Checks
 
 [`playwright.config.mjs`](../playwright.config.mjs) serves the slim site with
@@ -72,7 +98,10 @@ frames and workers is recorded; anything not on 127.0.0.1 is aborted and fails t
 | [`tests/e2e/editor.spec.mjs`](../tests/e2e/editor.spec.mjs) | new project, JavaScript -> blocks, the simulator runs it (pixel check) in a frame with `sandbox="allow-scripts"` where cookies, storage, the parent page and `/api/profiles` are blocked, the `.png` cartridge downloads; 0 external requests, 0 service workers (with service workers allowed), 0 CSP violations, 0 console errors. No cloud UI: no sign-in, no share, no GitHub button, no Extensions category or menu entry, no AI error help, home page with "My Projects" only and no links out of the site. Languages: Greek by default, exactly en + el in the language menu, English chosen there is remembered after reload, `?lang=el` forces Greek |
 | [`tests/e2e/play.spec.mjs`](../tests/e2e/play.spec.mjs) | compiles a program with the packaged runner (`run.html?code=...&sendBuilt=1`), then `play.html?id=1` (the test answers `/api/lab/games/1/binary`) runs it without the editor at 1280x800 (keyboard), 820x1180 and 1180x820 (on-screen d-pad moves the sprite); the frame is `sandbox="allow-scripts"` and inside it `document.cookie`, `localStorage`, `window.parent.document` and `fetch('/api/profiles')` all fail; no editor/compiler files loaded, 0 external, 0 CSP violations, 0 console errors. Refusals: `?src=...`, `?id=../x`, `?id=1x`, an absolute URL, 10 digits, an extra parameter and no parameter fetch nothing, create no frame and show «Αυτό το παιχνίδι δεν υπάρχει...» |
 
-Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play` (CSP blocks in
+| [`tests/e2e/lab.spec.mjs`](../tests/e2e/lab.spec.mjs) | lab home at 1280 / 820x1180 / 1180x820 / 360 in light and dark (Greek, `lang="el"`, sections, text ≥ 18 px, no horizontal scroll, axe 0 serious/critical), remembered theme switch, editor bar and framed editor, 360 px note, the publish flow against the fake hub (binary gzip-JSON + PNG cartridge received, 201, token kept and never in a URL or the console, `completed`/`completedAt`/milestones, the published game plays sandboxed, shell buttons, «Απόσυρση» with the token), every error answer in Greek, no session = link to «Προφίλ» and no PIN field, client-side 2 MB gzip cap; 0 external, 0 CSP violations, 0 console errors |
+| [`tests/unit/core.test.mjs`](../tests/unit/core.test.mjs) | `node --test`: KCL-U01..U12 (settings load/save with bad JSON, missing `hub`, old version, broken storage; milestone rules; `completedAt` once; payload caps and cleaning; gzip cap; Greek answers; `?id=` parser). Red against an empty module (`KCL_CORE=<empty module>`: 12 of 12 fail) |
+
+Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play|adr` (`adr` = games-hub ADR-0006 per page kind: editor, simulator frame, player, lab pages; blocks in
 [`makecode/csp.mjs`](../makecode/csp.mjs); `EDITOR_TIGHT=1` = the recommended editor pair), `SW=block` (default: service workers allowed, so "0 registered" is meaningful; Playwright's block mode also throws a console error inside sandboxed frames),
 `HUB_HEADERS=1` (the games-hub security headers incl. `X-Frame-Options: DENY` and `Permissions-Policy`).
 
@@ -87,7 +116,7 @@ CSP=strict npx playwright test tests/e2e/play.spec.mjs --grep desktop   # must F
 
 [`.github/workflows/build.yml`](../.github/workflows/build.yml): GitHub-hosted `ubuntu-24.04`, actions pinned by
 commit SHA, `permissions: contents: read`, no secrets. Job `build`: the build, the "no cloud compiler" check, the
-three Playwright runs above plus the strict-CSP negative check, then the tarball as the artifact `kids-code-lab`
+unit tests, the editor checks without a CSP, every Playwright spec under `CSP=adr HUB_HEADERS=1` (the ADR-0006 headers incl. `X-Frame-Options: SAMEORIGIN` and CORP), the strict-CSP negative check, then the tarball as the artifact `kids-code-lab`
 and the check results (`test-results/*.json`, build log, Greek coverage table) as `check-results`. Job `release`
 (only for `v*` tags, `permissions: contents: write` in that job only): attaches the tarball to the GitHub release.
 

@@ -6,6 +6,7 @@
 //   strict   hub-like for every page: no eval, no blob:   -> shows what MakeCode needs beyond the hub CSP
 //   editor   narrowest CSP found for the editor page + simulator frame
 //   play     narrowest CSP found for the play-only page + simulator frame
+//   adr      games-hub ADR-0006: per page kind (editor, simulator frame, player, lab pages), what infra sends
 import { createHash } from "node:crypto";
 
 export function inlineScriptHashes(html) {
@@ -49,7 +50,28 @@ const TABLE = {
   },
 };
 
+// ADR-0006 (games-hub): one CSP per page kind, as infra's file server sends them.
+const LAB = ["default-src 'none'", "script-src 'self'", "style-src 'self'", "img-src 'self' data:", "font-src 'self'",
+  "connect-src 'self'", "frame-src 'self'", "worker-src 'none'", "media-src 'none'", "manifest-src 'self'",
+  "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'"];
+
+export function pageKind(path) {
+  if (/(^|\/)simulator\.html$/.test(path)) return "sim";
+  if (/\/play\/[^/]*$/.test(path)) return "play";
+  if (/\/lab\/[^/]*$/.test(path)) return "lab";
+  return "editor";
+}
+
+function adrCsp(html, path) {
+  const kind = pageKind(path);
+  if (kind === "lab") return LAB.join("; ");
+  const t = kind === "editor" ? { any: TABLE.strict.any } : { any: TABLE.play.any, sim: TABLE.play.sim };
+  const k = kind === "sim" ? "sim" : "any";
+  return [...BASE, ...t[k]].join("; ").replace("HASHES", inlineScriptHashes(html).join(" ")).replace(/ +/g, " ").replace(/ ;/g, ";");
+}
+
 export function cspFor(mode, html, path = "") {
+  if (mode === "adr") return adrCsp(html, path);
   let t = TABLE[mode];
   if (!t) return "";
   // EDITOR_TIGHT=1: the editor page gets the strict (hub-like) directives; only the simulator keeps its own.

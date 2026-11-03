@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Εργαστήρι Κώδικα">
+  <rect width="64" height="64" rx="14" fill="#2f5d50"/>
+  <g fill="#e8833a" stroke="#9a4312" stroke-width="1.5">
+    <rect x="25" y="10" width="14" height="14" rx="3"/>
+    <rect x="10" y="25" width="14" height="14" rx="3"/>
+    <rect x="40" y="25" width="14" height="14" rx="3"/>
+    <rect x="25" y="40" width="14" height="14" rx="3"/>
+  </g>
+  <circle cx="32" cy="32" r="6" fill="#f6efe0"/>
+</svg>

@@ -152,6 +152,8 @@ test("editor: no cloud UI (sign-in, share, GitHub, extensions, AI, cloud import)
   await page.keyboard.type("let x: number = \"not a number\"\n");
   await page.waitForTimeout(3000);
   await expect(page.locator(".error-help-button:visible")).toHaveCount(0);
+  // no "Open in VS Code" (vscode.dev) under the JavaScript view
+  await expect(page.getByRole("button", { name: /VS Code/ })).toHaveCount(0);
 
   save("cloud-ui", rec, errors, { settingsMenu: items });
   expect(rec.external, "requests outside 127.0.0.1").toEqual([]);

@@ -1,0 +1,147 @@
+/* KIDS-CODE-LAB: the lab's own pages (home, editor bar, publish dialog). Spec §8: Greek, text >= 18 px, light + dark,
+   own colour world (warm workshop orange + chalkboard green), no purple-blue gradient, WCAG AA contrast.
+   Font: Comfortaa from the hub (/static/fonts/comfortaa.css, same origin), system fonts as fallback. */
+
+:root {
+  --bg: #fbf6ec;
+  --surface: #ffffff;
+  --text: #1d2b26;
+  --muted: #44544d;
+  --accent: #9a4312;       /* workshop orange, dark enough for text on light (6.4:1 on --bg) */
+  --accent-bg: #b4531b;    /* button fill, white text 5.0:1 */
+  --accent-fg: #ffffff;
+  --board: #2f5d50;        /* chalkboard green */
+  --board-fg: #f6efe0;
+  --line: #c9b99a;
+  --focus: #0b5cad;
+  --danger: #a3241a;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #17231f;
+  --surface: #1f2f29;
+  --text: #f6efe0;
+  --muted: #cfc4ad;
+  --accent: #f3a66b;
+  --accent-bg: #e8833a;
+  --accent-fg: #17231f;
+  --board: #24463c;
+  --board-fg: #f6efe0;
+  --line: #4d6a5f;
+  --focus: #8cc4ff;
+  --danger: #ff9a8f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 18px/1.5 "Comfortaa", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; z-index: 10; background: var(--surface); padding: 0.5rem 1rem; }
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  background: var(--board);
+  color: var(--board-fg);
+}
+.bar a, .bar .linkish { color: var(--board-fg); font-weight: 700; }
+.bar h1 { font-size: 1.3rem; margin: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 0.6rem; }
+.bar .icon { width: 2rem; height: 2rem; flex: none; }
+
+.btn {
+  font: inherit;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 2px solid transparent;
+  background: var(--accent-bg);
+  color: var(--accent-fg);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+.bar .btn.secondary { color: var(--board-fg); border-color: var(--board-fg); }
+.btn.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+.btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+main { max-width: 64rem; margin: 0 auto; padding: 1rem; }
+section { margin: 1.5rem 0; }
+h2 { font-size: 1.4rem; margin: 0 0 0.6rem; }
+.lead { color: var(--muted); margin-top: 0; }
+
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.card {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.card a.title { font-weight: 700; font-size: 1.1rem; }
+.card .meta { color: var(--muted); }
+.empty { color: var(--muted); }
+
+/* editor page */
+body.editor-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+#editor-frame { flex: 1 1 auto; width: 100%; border: 0; background: var(--surface); }
+.narrow-note { display: none; padding: 1.5rem; }
+@media (max-width: 600px) {
+  body.editor-page { height: auto; overflow: auto; }
+  body.editor-page #editor-frame, body.editor-page #publish-open { display: none; }
+  .narrow-note { display: block; }
+}
+
+/* publish dialog */
+dialog {
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  padding: 1.2rem 1.4rem;
+  width: min(36rem, 94vw);
+  max-height: 92vh;
+  overflow: auto;
+}
+dialog::backdrop { background: rgba(10, 20, 16, 0.6); }
+dialog h2 { margin-top: 0; }
+.field { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.9rem 0; }
+.field label { font-weight: 700; }
+.field input, .field textarea, .field select {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 48px;
+}
+.field .hint { color: var(--muted); font-size: 1rem; }
+.cover { display: flex; gap: 1rem; align-items: center; }
+.cover img { width: 10rem; height: auto; border-radius: 0.5rem; border: 2px solid var(--line); image-rendering: pixelated; background: var(--bg); }
+.actions { display: flex; gap: 0.8rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 1rem; }
+.status { min-height: 1.5em; font-weight: 700; }
+.status.error { color: var(--danger); }
+.status.ok { color: var(--text); }

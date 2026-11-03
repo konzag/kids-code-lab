@@ -1,7 +1,7 @@
 // The play-only page (makecode/player) runs a compiled game without the editor (docs/BUILD.md, spike §7).
 // 1. compile a small program with the packaged runner (run.html?code=...&sendBuilt=1 posts the pxtc
 //    BuiltSimJsInfo JSON to its parent): the artefact the hub stores at publish time.
-// 2. play.html?id=1 (no MakeCode script; simulator.html in a sandbox="allow-scripts" frame) runs it; on a tablet (820x1180 portrait, 1180x820 landscape) the
+// 2. /kids-code-lab/play/?id=1 (no MakeCode script; simulator.html in a sandbox="allow-scripts" frame) runs it; on a tablet (820x1180 portrait, 1180x820 landscape) the
 //    on-screen d-pad and A/B are shown and move the sprite. Every request must stay on 127.0.0.1.
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -59,7 +59,7 @@ for (const vp of [{ name: "desktop", width: 1280, height: 800 }, { name: "tablet
     page.on("response", async (r) => loaded.push({ path: new URL(r.url()).pathname, bytes: (await r.body().catch(() => Buffer.alloc(0))).length }));
     // the hub API of a published game (games-hub ADR-0006), answered by the test
     await page.route("**/api/lab/games/1/binary", (route) => route.fulfill({ contentType: "application/json", body }));
-    await page.goto("/kids-code-lab/play/play.html?id=1");
+    await page.goto("/kids-code-lab/play/?id=1");
 
     // background red at a corner, yellow sprite in the middle
     await expect.poll(() => screenPixel(page, 0.02, 0.02), { timeout: 60_000 }).toBe(RED);
@@ -70,6 +70,20 @@ for (const vp of [{ name: "desktop", width: 1280, height: 800 }, { name: "tablet
     const pad = sim.locator(".game-joystick-svg");
     const ab = sim.locator(".game-button-svg");
     if (vp.name === "desktop") {
+      // ⏸ (hub shell button) stops the game: the arrow key does not move the sprite; ▶ starts it again
+      await page.locator("#pause").click();
+      await expect(page.locator("#pause")).toHaveAttribute("aria-pressed", "true");
+      await page.locator("#player iframe").focus();
+      await page.keyboard.down("ArrowRight");
+      await page.waitForTimeout(800);
+      await page.keyboard.up("ArrowRight");
+      expect(await screenPixel(page, 0.5, 0.5), "stopped: sprite still in the middle").not.toBe(RED);
+      await page.locator("#pause").click();
+      await expect(page.locator("#pause")).toHaveAttribute("aria-pressed", "false");
+      // the game starts again from the beginning: the sprite is back in the middle
+      await expect.poll(() => screenPixel(page, 0.5, 0.5), { timeout: 10_000 }).not.toBe(RED);
+      await page.waitForTimeout(500);
+      await page.locator("#player iframe").focus();
       await page.keyboard.down("ArrowRight");
       await page.waitForTimeout(800);
       await page.keyboard.up("ArrowRight");
@@ -134,12 +148,12 @@ for (const qs of ["?src=/kids-code-lab/play/x.json", "?id=../x", "?id=1x", "?id=
     watchPage(page, rec);
     const asked = [];
     await page.route("**/api/**", (route) => { asked.push(route.request().url()); return route.fulfill({ contentType: "application/json", body: JSON.stringify(built) }); });
-    await page.goto(`/kids-code-lab/play/play.html${qs}`);
+    await page.goto(`/kids-code-lab/play/${qs}`);
     await expect(page.locator("#status")).toHaveText(/δεν υπάρχει/);
     await page.waitForTimeout(500);
     expect(asked, "no game fetched").toEqual([]);
     await expect(page.locator("iframe")).toHaveCount(0);
     const paths = rec.requests.map((u) => new URL(u).pathname);
-    expect(paths.filter((p) => !/\/play\/play\.(html|js|css)$/.test(p)), "only the page itself loaded").toEqual([]);
+    expect(paths.filter((p) => !/\/play\/(play\.js|play\.css)?$/.test(p)), "only the page itself loaded").toEqual([]);
   });
 }

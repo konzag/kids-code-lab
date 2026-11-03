@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Παίξε</title>
+  <link rel="stylesheet" href="play.css">
+  <!-- play-only page (/kids-code-lab/play/?id=<digits>): no editor, no compiler, no MakeCode script here. play.js runs
+       the game in a sandboxed simulator frame (sandbox="allow-scripts", opaque origin). -->
+  <script src="play.js" defer></script>
+</head>
+<body>
+  <nav class="shell" aria-label="Κουμπιά παιχνιδιού">
+    <button type="button" id="pause" aria-pressed="false" title="Σταμάτημα" disabled>⏸<span class="sr">Σταμάτημα</span></button>
+    <button type="button" id="mute" aria-pressed="false" title="Ήχος" disabled>🔊<span class="sr">Σίγαση</span></button>
+    <button type="button" id="full" title="Πλήρης οθόνη">⛶<span class="sr">Πλήρης οθόνη</span></button>
+    <a href="/" id="home" title="Πίσω στα παιχνίδια">🏠<span class="sr">Πίσω στα παιχνίδια</span></a>
+  </nav>
+  <main id="player" aria-label="Παιχνίδι"></main>
+  <p id="status" role="status">Φόρτωση…</p>
+</body>
+</html>

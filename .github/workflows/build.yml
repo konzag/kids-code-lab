@@ -41,6 +41,9 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
+      - name: Unit tests (lab settings, milestones, publish payload, gzip cap)
+        run: node --test tests/unit/core.test.mjs
+
       - name: Build (pinned pxt-arcade, patches, slim, precompression, tarball)
         env:
           REF_TYPE: ${{ github.ref_type }}
@@ -59,10 +62,8 @@ jobs:
       - name: Check - editor offline, no service worker, no console errors (no CSP header)
         run: npx playwright test tests/e2e/editor.spec.mjs
 
-      - name: Check - editor + play page with the recommended CSPs and the games-hub headers
-        run: |
-          CSP=editor EDITOR_TIGHT=1 HUB_HEADERS=1 npx playwright test tests/e2e/editor.spec.mjs
-          CSP=play HUB_HEADERS=1 npx playwright test tests/e2e/play.spec.mjs
+      - name: Check - everything under the games-hub ADR-0006 CSPs and headers (editor, player, lab pages + fake hub API)
+        run: CSP=adr HUB_HEADERS=1 npx playwright test
 
       - name: Check - the hub-like CSP everywhere must block the game (proves the simulator CSP is needed)
         run: |

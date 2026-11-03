@@ -28,7 +28,7 @@ export function watchPage(page, rec) {
   const errors = [];
   page.on("console", (m) => {
     const t = m.text();
-    if (t.startsWith("CSP-VIOLATION") || /Content Security Policy/i.test(t)) rec.violations.push(t.slice(0, 300));
+    if (t.startsWith("CSP-VIOLATION") || /Content Security Policy/i.test(t)) rec.violations.push(`${t.slice(0, 300)} [in ${new URL(m.location().url || "about:blank", "http://x").pathname}]`);
     // "Failed to load resource" has no URL in the console text: the response handler below records it with the path
     else if (m.type() === "error" && !/^Failed to load resource/.test(t)) errors.push(t.slice(0, 300));
   });

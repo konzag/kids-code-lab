@@ -62,11 +62,50 @@
     if (!msg || typeof msg !== "object" || typeof msg.type !== "string") return;
     if (msg.type === "ready") {
       postRun();
+      enableShell();
     } else if (msg.type === "simulator" && (msg.command === "restart" || msg.command === "reload")) {
       postRun(); // the console's restart button
     }
     // everything else (status, serial, audio state, screenshots...) is ignored
   }
+
+  // ---------- hub shell buttons: ⏸ pause, 🔊 sound, ⛶ full screen, 🏠 back to the games ----------
+  var pauseBtn = document.getElementById("pause");
+  var muteBtn = document.getElementById("mute");
+  var fullBtn = document.getElementById("full");
+  var paused = false;
+  var muted = false;
+  function post(msg) { if (frame) frame.contentWindow.postMessage(msg, "*"); }
+  function enableShell() {
+    pauseBtn.disabled = false;
+    muteBtn.disabled = false;
+  }
+  pauseBtn.addEventListener("click", function () {
+    paused = !paused;
+    // The MakeCode simulator has no pause message (its debugger pause needs a debug build, and the Arcade
+    // "TogglePause" key only flips an unused flag): ⏸ stops the game, ▶ starts it again from the beginning.
+    // A real pause inside the game is its own «Menu» button (Arcade system menu).
+    if (paused) post({ type: "stop", source: "pxtdriver" });
+    else postRun();
+    pauseBtn.setAttribute("aria-pressed", String(paused));
+    pauseBtn.firstChild.textContent = paused ? "▶" : "⏸";
+    pauseBtn.title = paused ? "Ξανά από την αρχή" : "Σταμάτημα";
+    pauseBtn.querySelector(".sr").textContent = paused ? "Ξανά από την αρχή" : "Σταμάτημα";
+    say(paused ? "Το παιχνίδι σταμάτησε. Πάτα ▶ για να ξεκινήσει ξανά από την αρχή." : "");
+    if (!paused && frame) frame.focus();
+  });
+  muteBtn.addEventListener("click", function () {
+    muted = !muted;
+    post({ type: "mute", mute: muted, source: "pxtdriver" });
+    muteBtn.setAttribute("aria-pressed", String(muted));
+    muteBtn.firstChild.textContent = muted ? "🔇" : "🔊";
+    muteBtn.querySelector(".sr").textContent = muted ? "Ήχος" : "Σίγαση";
+    if (frame) frame.focus();
+  });
+  fullBtn.addEventListener("click", function () {
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  });
 
   fetch(GAME_URL(id), { credentials: "omit", cache: "no-cache", headers: { Accept: "application/json" } })
     .then(function (resp) {
