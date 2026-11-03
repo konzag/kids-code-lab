@@ -243,6 +243,7 @@ or the child's cartridge, compiles it once with a hidden `run.html?server=1&send
 `play.html` + `GET /api/lab/games/<id>/binary`. The **2 MB cap of §12a.6 is too tight for the raw JSON** (a tiny game
 is already 1.77 MB, a normal one 2.4 MB): store it gzip-compressed (a tiny game = 264 KB) and apply the 2 MB cap to
 the compressed size, or raise the raw cap to about 6 MB. Owner decision.
+*Decided 2026-11-03 12:40 (owner): the 2 MB cap applies to the gzip-compressed game (spec §12a.6).*
 
 ## 8. Recommendation
 

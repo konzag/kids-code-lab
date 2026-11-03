@@ -1,0 +1,360 @@
+/*
+  KIDS-CODE-LAB: stylesheet of the simulator frame (makecode/sim/simulator.html).
+  Our own file. MakeCode's hosted sim.css is not published under an open licence and is NOT used or copied.
+
+  Parts marked [MIT] are based on microsoft/pxt-arcade share/src/css/GameButtons.css and
+  share/src/css/Joystick.css, commit 2d7d59b5226e8a1a1e05e8042dd9f5248ed68fea,
+  MIT, Copyright (c) Microsoft Corporation (licence text in THIRD-PARTY-NOTICES.md).
+
+  What the compiled simulator (sim.js) relies on: the element ids/classes of simulator.html, the class "hidden" on
+  the screen canvas until a game runs, "just-screen" on .game-player when the host asks for the screen only,
+  "active" on pressed buttons/d-pad parts, "junior"/"high-contrast" on #wrap, and the colour variables below
+  (it may override them with a simulator colour theme).
+
+  Layout: the frame is a console 17:20 (portrait, used by the editor); wider than 5:3 the screen sits in the middle
+  with the d-pad left and A/B right (full screen on a tablet in landscape); below 250x200 only the screen.
+*/
+
+#wrap {
+  /* lab colour world: chalkboard green + workshop orange */
+  --sim-background-color: #2f5d50;
+  --sim-button-fill: #1d2b26;
+  --sim-button-stroke: #e8833a;
+  --sim-dpad-fill: #24463c;
+  --sim-text-color: #f6efe0;
+  --sim-joystick-handle-stroke: #c9b99a;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--sim-text-color, #f6efe0);
+  font: 16px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+#wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  -webkit-touch-callout: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+[hidden] {
+  display: none;
+}
+
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ---------- console (portrait, default) ---------- */
+.game-player {
+  position: relative;
+  box-sizing: border-box;
+  /* largest 17:20 box that fits the frame */
+  width: min(100vw, calc(100vh * 17 / 20));
+  height: min(100vh, calc(100vw * 20 / 17));
+  padding: 4%;
+  border-radius: 6% / 5%;
+  background: var(--sim-background-color);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    "screen screen"
+    "sys    sys"
+    "pad    ab";
+  row-gap: 3%;
+}
+
+.game-embed {
+  grid-area: screen;
+  box-sizing: border-box;
+  padding: 3%;
+  border-radius: 4%;
+  background: var(--sim-button-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game-screen {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  outline: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#game-screen:focus-visible {
+  outline: 3px solid var(--sim-button-stroke);
+  outline-offset: 2px;
+}
+
+.game-sys-button-group {
+  grid-area: sys;
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+  z-index: 2;
+}
+
+.game-sys-button {
+  font: inherit;
+  font-size: clamp(11px, 3.6vmin, 18px);
+  color: var(--sim-text-color);
+  background: var(--sim-button-fill);
+  border: 0.18em solid var(--sim-button-stroke);
+  border-radius: 2em;
+  padding: 0.2em 0.9em;
+  cursor: pointer;
+}
+
+.game-sys-button:active {
+  background: var(--sim-background-color);
+}
+
+.game-sys-button:focus-visible {
+  outline: 3px solid var(--sim-text-color);
+  outline-offset: 2px;
+}
+
+.game-reset-button i::before {
+  /* "restart" arrow as a plain character: no icon font needed in the frame */
+  font-style: normal;
+  content: "\21BB";
+}
+
+/* [MIT] GameButtons.css / Joystick.css: no text selection or browser gestures on the touch controls */
+.game-joystick,
+.game-buttons {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  touch-action: none;
+  z-index: 20;
+  min-height: 0;
+}
+
+.game-button-svg,
+.game-joystick-svg {
+  user-select: none;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.game-buttons svg text {
+  fill: var(--sim-text-color);
+  stroke: var(--sim-text-color);
+  stroke-width: 0.4;
+}
+/* [/MIT] */
+
+.game-joystick {
+  grid-area: pad;
+  align-items: flex-start;
+}
+
+.game-buttons {
+  grid-area: ab;
+  align-items: flex-end;
+}
+
+/* The controls must stay SQUARE: sim.js maps a touch to the 40x40 viewBox with the element's bounding box
+   (x * 40 / width, y * 40 / height). --ctl = side length for the current layout. */
+.game-player {
+  --ctl: min(40vw, calc(min(100vh, 100vw * 20 / 17) * 0.27));
+}
+
+.game-joystick-svg,
+.game-button-svg {
+  width: var(--ctl);
+  height: var(--ctl);
+  flex: none;
+}
+
+/* colours by class (CSS wins over the SVG presentation attributes, so a simulator theme applies everywhere) */
+.joystick-background { fill: var(--sim-dpad-fill); stroke: var(--sim-button-stroke); }
+.dpad-up, .dpad-down, .dpad-left, .dpad-right { fill: var(--sim-text-color); }
+.dpad-up.active, .dpad-down.active, .dpad-left.active, .dpad-right.active { fill: var(--sim-button-stroke); }
+.joystick-handle { fill: var(--sim-button-fill); stroke: var(--sim-joystick-handle-stroke); }
+.button-a, .button-b { fill: var(--sim-button-fill); stroke: var(--sim-button-stroke); }
+.button-a.active, .button-b.active { fill: var(--sim-button-stroke); }
+
+.game-player-background,
+.game-player-msft {
+  display: none;
+}
+
+#debug-stats {
+  position: absolute;
+  left: 4%;
+  bottom: 1%;
+  font-size: 11px;
+  opacity: 0.8;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---------- landscape: screen in the middle, d-pad left, A/B right ---------- */
+@media (min-aspect-ratio: 5/3) and (min-width: 250px) and (min-height: 200px) {
+  #wrap:not(.portrait-only) .game-player {
+    width: 100vw;
+    height: 100vh;
+    padding: 2vh 2vw;
+    border-radius: 0;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "pad sys    ab"
+      "pad screen ab";
+    column-gap: 2vw;
+    row-gap: 1vh;
+    /* what is left beside a 4:3 screen of (almost) full height, at most 60% of the height */
+    --ctl: max(60px, min(calc((92vw - 128vh) / 2), 60vh));
+  }
+
+  #wrap:not(.portrait-only) .game-embed {
+    height: calc(100vh - 4vh - 2.6em);
+    aspect-ratio: 4 / 3;
+    padding: 1.5vh;
+  }
+
+  #wrap:not(.portrait-only) #game-screen {
+    width: auto;
+    height: 100%;
+  }
+
+  #wrap:not(.portrait-only) .game-joystick,
+  #wrap:not(.portrait-only) .game-buttons {
+    align-items: center;
+    max-height: 70vh;
+    align-self: center;
+  }
+}
+
+/* ---------- screen only: tiny frames, or the host asked for it (hideSimButtons) ---------- */
+@media (max-width: 250px), (max-height: 200px) {
+  .game-sys-button-group,
+  .game-joystick,
+  .game-buttons,
+  #debug-stats {
+    display: none;
+  }
+
+  .game-player {
+    width: min(100vw, calc(100vh * 4 / 3));
+    height: min(100vh, calc(100vw * 3 / 4));
+    padding: 0;
+    border-radius: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "screen";
+  }
+
+  .game-embed {
+    padding: 0;
+    border-radius: 0;
+  }
+}
+
+.game-player.just-screen {
+  width: min(100vw, calc(100vh * 4 / 3));
+  height: min(100vh, calc(100vw * 3 / 4));
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "screen";
+}
+
+.just-screen .game-sys-button-group,
+.just-screen .game-joystick,
+.just-screen .game-buttons,
+.just-screen #debug-stats {
+  display: none;
+}
+
+.just-screen .game-embed {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.game-player.no-padding .game-embed {
+  padding: 0;
+}
+
+/* ---------- variants the simulator can switch on ---------- */
+#wrap.junior .game-joystick,
+#wrap.junior .game-sys-button-group,
+#wrap.junior .button-b,
+#wrap.junior .label-b {
+  display: none;
+}
+
+#wrap.high-contrast .game-player:not(.just-screen) {
+  outline: 0.3em solid var(--sim-text-color);
+  outline-offset: -0.3em;
+}
+
+#wrap.mp-client .game-sys-button-group {
+  display: none;
+}
+
+/* the simulator's Safari "click to start" overlay (shown with style.display = "flex") */
+.safari-enable-game {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.safari-enable-game[hidden] {
+  display: none;
+}
+
+.safari-enable-game-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1d2b26;
+}
+
+.safari-enable-game-body .title {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.safari-enable-game-body button {
+  font: inherit;
+  font-size: 18px;
+  padding: 0.7rem 1.6rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: #b4531b;
+  color: #fff;
+  cursor: pointer;
+}

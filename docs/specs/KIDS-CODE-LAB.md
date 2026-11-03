@@ -159,6 +159,8 @@ If the spike shows the CSP or the size cannot be made to fit the hub, the fallba
 4. Published games on their own page, with a card on the hub landing.
 5. LAN/tailnet only, no Funnel.
 6. Max 2 MB per game, max 100 games. A child can unpublish only their own game; only the parent deletes.
+   2026-11-03 12:40 (owner, after the spike): the 2 MB cap applies to the **gzip-compressed** game (the compiled
+   game JSON is stored gzipped; a tiny game is 1.77 MB raw, 264 KB gzip).
 7. Yes, in the backup (hub SQLite).
 8. Greek, with an English option.
 9. Badge: «πρώτο δημοσιευμένο παιχνίδι».
