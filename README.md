@@ -4,7 +4,7 @@ The family's kids make their own small arcade games with blocks (MakeCode Arcade
 play them on the PC or tablet and, with a parent's family code, publish a finished game to a shelf in «Τα Παιχνίδια
 μας» (games-hub). No accounts, no cloud, nothing leaves the house.
 
-**Status: work package 2 of L1-27 (lab pages, no deploy yet).** Spec: [docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md).
+**Status: work package 3 of L1-27 (lab pages, shell keys, feature CSP coverage; no deploy yet).** Spec: [docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md).
 Spike of spec §4: [docs/spike/SPIKE-REPORT.md](docs/spike/SPIKE-REPORT.md). Build, patches and checks:
 [docs/BUILD.md](docs/BUILD.md). Hub side (shelf page, landing card, `/api/lab/*`): games-hub ADR-0006, built in
 games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
@@ -69,11 +69,17 @@ games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-N
 | KCL-16 | Αρχική → «Απόσυρση» → «Ναι, απόσυρση» | «Το παιχνίδι αποσύρθηκε από το ράφι.»· φεύγει από το ράφι, μένει στη συσκευή |
 | KCL-17 | Στα 360 px: Αρχική και «Νέο παιχνίδι» | Η Αρχική δουλεύει· ο επεξεργαστής δείχνει «Το εργαστήρι θέλει tablet ή υπολογιστή» |
 | KCL-18 | Απενεργοποιημένη αποθήκευση στο hub (γονιός) και «Δημοσίευση» | «Η αποθήκευση στο σπίτι δεν είναι ενεργή τώρα. Δοκίμασε αργότερα.» |
+| KCL-19 | Στο «Παίξε», πάτα πάνω στην οθόνη του παιχνιδιού και μετά M, P, Esc, F | M σίγαση, P/Esc σταματά / ξεκινά, F πλήρης οθόνη· τα βελάκια κινούν ακόμα τον ήρωα |
+| KCL-20 | Επεξεργαστής → «Πόροι» → «+» → εικόνα, πλακίδιο, χάρτης, κίνηση· ζωγράφισε, «Ολοκλήρωση» | Ο πόρος μένει στο έργο |
+| KCL-21 | «Πόροι» → «+» → τραγούδι· νότες με δύο όργανα, ▶ και ■ | Ακούγεται το τραγούδι, χωρίς σφάλμα |
+| KCL-22 | «Μαθήματα» → «Το πρώτο μου παιχνίδι», «ΟΚ», βήματα μέχρι το τέλος | Όλες οι εικόνες φαίνονται· χωρίς κουμπί «Immersive Reader» |
 
 Αυτόματες δοκιμές: `node --test tests/unit/core.test.mjs` (KCL-U01..U12) και Playwright (`tests/e2e/`, docs/BUILD.md).
 
 ## Τι άλλαξε
 
+- 2026-11-04, WP3 (`list1/l1-27-wp3`): τα πλήκτρα P/Esc, M, F δουλεύουν και μέσα στο παιχνίδι (KCL-19)· έλεγχος πόρων,
+  μουσικής και μαθημάτων (KCL-20..22)· οι εικόνες των μαθημάτων μέσα στο πακέτο· χωρίς «Immersive Reader».
 - 2026-11-03, WP2 (`list1/l1-27-wp2`): σελίδες του εργαστηρίου, δημοσίευση, απόσυρση, κουμπιά κελύφους στο «Παίξε»,
   πρόοδος §5a, χωρίς «Επιλέξτε Υλικό» και «Open in VS Code» (KCL-01..18).
 - 2026-11-03, WP1 (`list1/l1-27-wp1`): offline build, δικός μας προσομοιωτής, ελληνικά, χωρίς cloud, CI.
@@ -86,8 +92,8 @@ games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-N
   στα αγγλικά. Οι οδηγοί «Μαθήματα» είναι κυρίως στα αγγλικά.
 - ⏸ στο «Παίξε» σταματά το παιχνίδι και το ▶ το ξεκινά από την αρχή: ο προσομοιωτής του MakeCode δεν έχει παύση από
   έξω. Πραγματική παύση μέσα στο παιχνίδι δίνει το κουμπί «Menu» της κονσόλας.
-- Τα πλήκτρα P/Esc, M, F του κελύφους δεν δουλεύουν όταν το παιχνίδι έχει το focus (το πλαίσιο του παιχνιδιού είναι
-  απομονωμένο και κρατά τα πλήκτρα)· τα κουμπιά δουλεύουν πάντα.
+- Το P είναι και το πλήκτρο «στιγμιότυπο» του Arcade· ένα παιχνίδι που αλλάζει τα πλήκτρα του σε M, F ή Esc τα μοιράζεται
+  με το κέλυφος.
 - Η «Απόσυρση» γίνεται μόνο από τη συσκευή που δημοσίευσε (κρατά το κλειδί απόσυρσης)· τα υπόλοιπα τα αφαιρεί ο γονιός
   από το ράφι του hub.
 - Ο ίδιος ο επεξεργαστής MakeCode δεν ελέγχεται με axe (δεν είναι δικός μας κώδικας)· οι σελίδες του εργαστηρίου ναι.

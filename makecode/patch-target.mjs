@@ -43,6 +43,7 @@ set(th, "hideShareEmbed", true);
 set(th, "allowPackageExtensions", false);
 set(th, "forceEnableAiErrorHelp", false);
 set(th, "showOpenInVscode", false); // "Open in VS Code" (vscode.dev, cloud) under the JavaScript view
+set(th, "immersiveReader", false); // "Launch Immersive Reader" in tutorials: a Microsoft cloud service (token from makecode.com)
 del(th, "githubUrl");
 del(th, "feedbackUrl");
 // links out of the site (footer of the home page, help menu, feedback frame): a child stays inside the lab.

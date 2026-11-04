@@ -42,7 +42,7 @@ compiler** any more (the hardware variants are removed, see below); CI fails if 
 | pxtarget `appTheme.defaultLocale` | `"el"` | Greek by default. Order in the editor: `?lang=` > MakeCode's `PXT_LANG` cookie (its language menu) > `defaultLocale`, so English chosen in the menu is remembered on the device |
 | pxtarget `appTheme.disableLiveTranslations` | `true` | otherwise a non-English UI fetches `makecode.com/api/translations` (68 requests per load in the spike) |
 | pxtarget `cloud.*` | `sharing, thumbnails, importing, packages, publishing, githubPackages, showBadges = false`, `cloudProviders = {}` | no share links, no cloud import, no Extensions category or extension search, no badges, no sign-in providers |
-| pxtarget `appTheme` | `identity, githubEditor, qrCode, shareToKiosk, allowPackageExtensions, forceEnableAiErrorHelp, showOpenInVscode = false`, `hideShareEmbed = true` | no sign-in, no GitHub repos, no QR/kiosk sharing, no editor extensions, no AI error help, no "Open in VS Code" (vscode.dev) |
+| pxtarget `appTheme` | `identity, githubEditor, qrCode, shareToKiosk, allowPackageExtensions, forceEnableAiErrorHelp, showOpenInVscode, immersiveReader = false`, `hideShareEmbed = true` | no sign-in, no GitHub repos, no QR/kiosk sharing, no editor extensions, no AI error help, no "Open in VS Code" (vscode.dev), no "Launch Immersive Reader" in tutorials (a Microsoft cloud service, token from makecode.com) |
 | pxtarget `appTheme.allowParentController` | removed (never set) | with it MakeCode switches to its "iframe" workspace and stores projects in the parent page (measured: the editor never opened). The lab drives the editor with hash commands instead |
 | pxtarget `appTheme` | remove `githubUrl, feedbackUrl, logoUrl, organizationUrl, privacyUrl, termsOfUseUrl, ocvFrameUrl, homeScreenHero, homeScreenHeroGallery, socialOptions`; `docMenu = []` | no links out of the site (makecode.com, Microsoft terms/privacy, GitHub, forum), no hero carousel (its images had absolute `/static/` paths, 404) |
 | targetconfig `galleries = {}`, `hardwareOptions = []`, `shareLinks.approved = []` | | the home page shows only "My Projects" + "New Project"; no hardware dialog |
@@ -53,6 +53,7 @@ compiler** any more (the hardware variants are removed, see below); CI fails if 
 | output `locales/<lang>/sim-strings.json` | `{}` when missing | there are no approved Greek simulator strings; the simulator requested the file on every run (HTTP 404) |
 | output `pxtsim.js`, `pxtembed.js`, `pxtapp.js` | simulator iframe `allow="autoplay;microphone"` -> `allow="autoplay"` | no microphone feature in the lab; under the hub's `Permissions-Policy: microphone=()` Chrome logged a policy violation on every run |
 | output `pxtsim.js`, `pxtembed.js`, `pxtapp.js` | editor simulator frame `sandbox="allow-scripts"` (no `allow-same-origin`); driver posts to it with targetOrigin `*`; accepts origin `null` only from its own simulator frames (`ev.source`) | the child's compiled game runs with `'unsafe-eval'` in that frame; with an opaque origin it cannot reach the site's cookies, storage, parent page or `/api/*`. See "Player security". The build fails if the three code patterns are not found (pxt-core upgrade) |
+| slim `docs/tutorials/<lab tutorial>.md` + `docs/static/...` | copy the 26 images the five «Μαθήματα» show; rewrite their `/static/...` links to `/kids-code-lab/docs/static/...` | the markdown points at the site root of makecode.com: under `/kids-code-lab/` that is the hub's own `/static` (measured: 7 × HTTP 404 in the intro tutorial) |
 | output files | delete `serviceworker.js`, `simulatorserviceworker.js`, `release.manifest` | GAME-STANDARD: no service worker, no offline cache. The static build never registers one (`isStatic`), the deletion makes sure nothing can |
 | slim copy | keep editor, simulator, runner, locales, Blockly/Monaco assets, tutorials as markdown; drop the docs site media, skillmap, teacher tool, kiosk, multiplayer and the other sub-apps | 464 MB -> 76 MB |
 
@@ -76,7 +77,7 @@ Copied by `build.sh` from [`makecode/lab/`](../makecode/lab/) to `/kids-code-lab
 | `lab/edit.html`, `edit.js` | top bar («🏠 Πίσω», «Δημοσίευση στο hub») and the editor in a frame: `../index.html?editorlayout=ide&ws=browser#newproject` / `#header:<id>` / `#tutorial:/tutorials/<id>`. In a frame MakeCode would otherwise start in its read-only "sandbox" layout with an in-memory workspace (measured "workspace: mem", "Cannot edit in read-only editor"). The «Δημοσίευση» dialog: profiles from `GET /api/profiles` (401 = link to the hub «Προφίλ» page, never a PIN field), compile, cartridge, `POST /api/lab/games` |
 | `lab/mc.js` | the MakeCode bridge: projects from IndexedDB (never creates or upgrades MakeCode's database), compile with the packaged runner (`run.html?sendBuilt=1` in a hidden frame, `data-code` = `main.ts`, `data-assets` = the other `.ts`/`.jres` files, `deps` from `pxt.json`), the `.png` cartridge made like MakeCode's Save button (lzma of the project encoded into the image with the editor frame's own `pxt.lzmaCompressAsync` / `pxt.Util.encodeBlobAsync`, so it can be imported back) on a cover drawn by the lab |
 | `lab/lab.css`, `icon.svg` | Comfortaa from the hub (`/static/fonts/comfortaa.css`), text ≥ 18 px, light + dark (remembered switch, else `prefers-color-scheme`), workshop orange + chalkboard green |
-| `play/index.html`, `play.js`, `play.css` | the player (see "Player security"), hub shell buttons ⏸ 🔊 ⛶ 🏠. ⏸ stops the game and ▶ starts it again from the beginning: the MakeCode simulator has no external pause (its debugger pause needs a debug build; the Arcade "TogglePause" key only flips an unused flag; tested) |
+| `play/index.html`, `play.js`, `play.css` | the player (see "Player security"), hub shell buttons ⏸ 🔊 ⛶ 🏠 and keys P/Esc, M, F (also with the focus inside the game frame: `sim/sim-keys.js`). ⏸ stops the game and ▶ starts it again from the beginning: the MakeCode simulator has no external pause (its debugger pause needs a debug build; the Arcade "TogglePause" key only flips an unused flag; tested) |
 
 **API contract** (games-hub ADR-0006 and the contract of 2026-11-03, faked in
 [`tests/e2e/fake-hub.mjs`](../tests/e2e/fake-hub.mjs) with Playwright routes, no port):
@@ -98,6 +99,8 @@ frames and workers is recorded; anything not on 127.0.0.1 is aborted and fails t
 | [`tests/e2e/editor.spec.mjs`](../tests/e2e/editor.spec.mjs) | new project, JavaScript -> blocks, the simulator runs it (pixel check) in a frame with `sandbox="allow-scripts"` where cookies, storage, the parent page and `/api/profiles` are blocked, the `.png` cartridge downloads; 0 external requests, 0 service workers (with service workers allowed), 0 CSP violations, 0 console errors. No cloud UI: no sign-in, no share, no GitHub button, no Extensions category or menu entry, no AI error help, home page with "My Projects" only and no links out of the site. Languages: Greek by default, exactly en + el in the language menu, English chosen there is remembered after reload, `?lang=el` forces Greek |
 | [`tests/e2e/play.spec.mjs`](../tests/e2e/play.spec.mjs) | compiles a program with the packaged runner (`run.html?code=...&sendBuilt=1`), then `play.html?id=1` (the test answers `/api/lab/games/1/binary`) runs it without the editor at 1280x800 (keyboard), 820x1180 and 1180x820 (on-screen d-pad moves the sprite); the frame is `sandbox="allow-scripts"` and inside it `document.cookie`, `localStorage`, `window.parent.document` and `fetch('/api/profiles')` all fail; no editor/compiler files loaded, 0 external, 0 CSP violations, 0 console errors. Refusals: `?src=...`, `?id=../x`, `?id=1x`, an absolute URL, 10 digits, an extra parameter and no parameter fetch nothing, create no frame and show «Αυτό το παιχνίδι δεν υπάρχει...» |
 
+| [`tests/e2e/features.spec.mjs`](../tests/e2e/features.spec.mjs) | MakeCode features inside the lab's editor page: the asset editor (create and draw an Image, Tile, Tilemap, Animation; the asset is saved with the project), the music editor (song with two instruments, play / stop), the «Μαθήματα» tutorial `intro` started and stepped through all 18 steps (no Immersive Reader button); each with 0 CSP violations, 0 console errors, 0 external requests |
+| [`tests/e2e/sound.spec.mjs`](../tests/e2e/sound.spec.mjs) | a game that plays a melody and a note string runs in the sandboxed simulator frame with sound allowed (Chromium autoplay rule off): 0 violations, 0 errors, 0 external |
 | [`tests/e2e/lab.spec.mjs`](../tests/e2e/lab.spec.mjs) | lab home at 1280 / 820x1180 / 1180x820 / 360 in light and dark (Greek, `lang="el"`, sections, text ≥ 18 px, no horizontal scroll, axe 0 serious/critical), remembered theme switch, editor bar and framed editor, 360 px note, the publish flow against the fake hub (binary gzip-JSON + PNG cartridge received, 201, token kept and never in a URL or the console, `completed`/`completedAt`/milestones, the published game plays sandboxed, shell buttons, «Απόσυρση» with the token), every error answer in Greek, no session = link to «Προφίλ» and no PIN field, client-side 2 MB gzip cap; 0 external, 0 CSP violations, 0 console errors |
 | [`tests/unit/core.test.mjs`](../tests/unit/core.test.mjs) | `node --test`: KCL-U01..U12 (settings load/save with bad JSON, missing `hub`, old version, broken storage; milestone rules; `completedAt` once; payload caps and cleaning; gzip cap; Greek answers; `?id=` parser). Red against an empty module (`KCL_CORE=<empty module>`: 12 of 12 fail) |
 
@@ -138,15 +141,36 @@ published", never as code that may act for the family. Therefore:
   command, with shape checks. The editor's simulator works sandboxed too (patch in "Patches and why"); measured in
   both specs: `document.cookie`, `localStorage`, `window.parent.document` throw `SecurityError`, `fetch('/api/profiles')`
   fails, and the game still runs (pixel check, keys, on-screen d-pad).
-- **Headers this needs on the lab paths:** the frame's own files (`simulator.html`, `pxtsim.js`, `sim.js`, `sim.css`)
+- **Shell keys from the game frame.** While a child plays, the keyboard focus is inside the sandboxed frame and the play
+  page never sees a key. [`makecode/sim/sim-keys.js`](../makecode/sim/sim-keys.js) (our file, loaded by
+  `simulator.html`, active only in the player's `#kcl-player` frame) forwards P, Esc, M and F, and only those, as
+  `{type: "kcl-shell-key", action}`; it does not stop the key, so the game still receives every key (the Arcade default
+  keymap does not use M, F or Esc; P is Arcade's screenshot key, whose message the play page ignores). It ignores keys
+  typed into a game's text prompt, with Ctrl/Alt/Meta and on repeat. `play.js` accepts the message only from its own
+  frame (`event.source`), with exactly these two keys and a known action. The sandbox stays `allow-scripts` only.
+- **Headers this needs on the lab paths:** the frame's own files (`simulator.html`, `pxtsim.js`, `sim.js`, `sim.css`,
+  `sim-keys.js`)
   are loaded by an opaque origin, i.e. cross-origin, so the hub's `Cross-Origin-Resource-Policy: same-origin` blocks
-  them (`net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`, measured). These four public static files need
+  them (`net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`, measured). These five public static files need
   `Cross-Origin-Resource-Policy: cross-origin` (`makecode/serve.mjs --hub-headers` does exactly that); all other lab
   files keep `same-origin`.
 - **Server side (games-hub ADR-0006, `/api/lab/*`):** the binary is trusted only as "a game the family published".
   At publish time the hub checks its size (2 MB gzip cap, spec §12a.6), its JSON shape (`js` string, `fnArgs` object,
   `parts` / `usedBuiltinParts` arrays) and stores its sha256; it serves it as `application/json` with `nosniff`.
   Compiling games on the server is out of scope.
+
+## CSP coverage of MakeCode's features (WP3, 2026-11-04)
+
+Measured with the ADR-0006 policies (`CSP=adr HUB_HEADERS=1`):
+
+| Feature | Result | Policy change |
+|---|---|---|
+| asset editor: image, tile, tilemap, animation | runs, 0 violations | none |
+| music editor: song, two instruments, play / stop | needed `data:` workers: `Refused to create a worker from 'data:application/javascript,...'` (pxsim `AudioContextManager.Metronome`, in `pxtapp.js`) | **editor page `worker-src 'self'` → `worker-src 'self' data:`** (a `data:` worker has an opaque origin: no access to the page, its storage or cookies) |
+| tutorials (`intro`, 18 steps) | runs, 0 violations; needed its images in the package (above) and the Immersive Reader button removed | none |
+| sound in the simulator frame (melody, note string) | runs, 0 violations | none. Not exercised: MakeCode's AudioWorklet path (`audioWorklet.addModule(blob:...)`, checked in the frame: never initialised by these games). If a game reaches it, the simulator CSP would need `blob:` in `script-src`; that would be a new ADR amendment |
+
+Header change: `sim-keys.js` is a fifth simulator-frame file with `Cross-Origin-Resource-Policy: cross-origin`.
 
 ## Known limits
 
