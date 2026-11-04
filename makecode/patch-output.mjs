@@ -76,7 +76,7 @@ for (const f of ["pxtsim.js", "pxtembed.js", "pxtapp.js"]) {
   if (!existsSync(p)) continue;
   const js = readFileSync(p, "utf8");
   const a = (js.match(SANDBOX_RE) || []).length, b = (js.match(ORIGIN_RE) || []).length, c = (js.match(LISTEN_RE) || []).length;
-  if (a === 0 && b === 0 && c === 0) continue; // already patched
+  if (js.includes("kclF=>kclF.contentWindow")) continue; // already patched (re-run on the same output)
   if (a !== 1 || b !== 1 || c !== 1) throw new Error(`patch-output: simulator sandbox patch does not fit ${f} (${a}/${b}/${c}); check the pxt-core version`);
   const next = js
     .replace(SANDBOX_RE, '$1"allow-scripts"')
@@ -114,6 +114,31 @@ if (slim) {
     }
   };
   if (existsSync(join(out, "docs"))) copyMd("docs");
+  // «Μαθήματα»: the images the lab's tutorials show (/static/... in their markdown, served from docs/static/), so a
+  // tutorial step has no broken image and no 404 in the console.
+  const { TUTORIALS } = await import("./lab/core.js");
+  let images = 0;
+  for (const t of TUTORIALS) {
+    const md = join(out, "docs", "tutorials", `${t.id}.md`);
+    if (!existsSync(md)) continue;
+    const text = readFileSync(md, "utf8");
+    for (const m of text.matchAll(/(?:\]\(|src=")(\/static\/[^)"\s]+)/g)) {
+      const rel = m[1].replace(/^\/static\//, "");
+      const from = join(out, "docs", "static", rel);
+      const to = join(slim, "docs", "static", rel);
+      if (existsSync(from) && !existsSync(to)) { mkdirSync(join(to, ".."), { recursive: true }); cpSync(from, to); images++; }
+    }
+  }
+  // The markdown says /static/... (the site root on makecode.com). Under /kids-code-lab/ that is the hub's own /static
+  // (404, or worse a hub file): point the lab's tutorials at the package's docs/static/.
+  const route = `/${out.split(/[\\/]/).filter(Boolean).pop()}/`;
+  for (const t of TUTORIALS) {
+    const md = join(slim, "docs", "tutorials", `${t.id}.md`);
+    if (!existsSync(md)) continue;
+    const text = readFileSync(md, "utf8");
+    writeFileSync(md, text.replace(/(\]\(|src=")\/static\//g, `$1${route}docs/static/`));
+  }
+  console.log(`slim: ${images} tutorial images, tutorial image paths under ${route}docs/static/`);
   const size = (d) => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? size(join(d, e.name)) : statSync(join(d, e.name)).size), 0);
   const count = (d) => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? count(join(d, e.name)) : 1), 0);
   console.log(`slim copy: ${slim} ${(size(slim) / 1048576).toFixed(1)} MB in ${count(slim)} files`);

@@ -65,7 +65,11 @@ export function pageKind(path) {
 function adrCsp(html, path) {
   const kind = pageKind(path);
   if (kind === "lab") return LAB.join("; ");
-  const t = kind === "editor" ? { any: TABLE.strict.any } : { any: TABLE.play.any, sim: TABLE.play.sim };
+  // ADR-0006 amendment 2026-11-04 (WP3): the editor page's worker-src adds data: for MakeCode's music editor
+  // metronome (pxsim AudioContextManager.Metronome: new Worker("data:application/javascript,...")). A data: worker
+  // runs with an opaque origin: no access to the page, its storage or cookies.
+  const EDITOR_ADR = TABLE.strict.any.map((d) => (d.startsWith("worker-src") ? "worker-src 'self' data:" : d));
+  const t = kind === "editor" ? { any: EDITOR_ADR } : { any: TABLE.play.any, sim: TABLE.play.sim };
   const k = kind === "sim" ? "sim" : "any";
   return [...BASE, ...t[k]].join("; ").replace("HASHES", inlineScriptHashes(html).join(" ")).replace(/ +/g, " ").replace(/ ;/g, ";");
 }
