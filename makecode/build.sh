@@ -31,7 +31,7 @@ tar -xzf "$WORK/npmpkg/pxt-arcade-$VER.tgz" -C "$WORK/npmpkg"
 mkdir -p built sim/public public          # public/: empty; pxt-core scans <simDir>/public and simDir is "" here
 cp "$WORK/npmpkg/package/built/sim.js" "$WORK/npmpkg/package/built/sim-strings.json" built/
 rm -f sim/public/sim.css sim/public/sim-shell.css
-cp "$HERE/sim/simulator.html" "$HERE/sim/sim.css" sim/public/
+cp "$HERE/sim/simulator.html" "$HERE/sim/sim.css" "$HERE/sim/sim-keys.js" sim/public/
 
 # 3. target patches: languages, cloud UI off, hardware off (docs/BUILD.md "Patches")
 node "$HERE/patch-target.mjs" .

@@ -65,6 +65,8 @@
       enableShell();
     } else if (msg.type === "simulator" && (msg.command === "restart" || msg.command === "reload")) {
       postRun(); // the console's restart button
+    } else if (msg.type === "kcl-shell-key" && Object.keys(msg).length === 2 && SHELL_KEYS.hasOwnProperty(msg.action)) {
+      SHELL_KEYS[msg.action](); // P/Esc, M, F pressed inside the game frame (makecode/sim/sim-keys.js)
     }
     // everything else (status, serial, audio state, screenshots...) is ignored
   }
@@ -80,7 +82,8 @@
     pauseBtn.disabled = false;
     muteBtn.disabled = false;
   }
-  pauseBtn.addEventListener("click", function () {
+  function toggleStop() {
+    if (pauseBtn.disabled) return;
     paused = !paused;
     // The MakeCode simulator has no pause message (its debugger pause needs a debug build, and the Arcade
     // "TogglePause" key only flips an unused flag): ⏸ stops the game, ▶ starts it again from the beginning.
@@ -93,18 +96,29 @@
     pauseBtn.querySelector(".sr").textContent = paused ? "Ξανά από την αρχή" : "Σταμάτημα";
     say(paused ? "Το παιχνίδι σταμάτησε. Πάτα ▶ για να ξεκινήσει ξανά από την αρχή." : "");
     if (!paused && frame) frame.focus();
-  });
-  muteBtn.addEventListener("click", function () {
+  }
+  function toggleMute() {
+    if (muteBtn.disabled) return;
     muted = !muted;
     post({ type: "mute", mute: muted, source: "pxtdriver" });
     muteBtn.setAttribute("aria-pressed", String(muted));
     muteBtn.firstChild.textContent = muted ? "🔇" : "🔊";
     muteBtn.querySelector(".sr").textContent = muted ? "Ήχος" : "Σίγαση";
     if (frame) frame.focus();
-  });
-  fullBtn.addEventListener("click", function () {
+  }
+  function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
     else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  }
+  pauseBtn.addEventListener("click", toggleStop);
+  muteBtn.addEventListener("click", toggleMute);
+  fullBtn.addEventListener("click", toggleFullscreen);
+  var SHELL_KEYS = { stop: toggleStop, mute: toggleMute, fullscreen: toggleFullscreen };
+  // the same keys when the focus is on this page (a shell button), not in the game frame
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+    var action = { p: "stop", escape: "stop", m: "mute", f: "fullscreen" }[String(e.key).toLowerCase()];
+    if (action) SHELL_KEYS[action]();
   });
 
   fetch(GAME_URL(id), { credentials: "omit", cache: "no-cache", headers: { Accept: "application/json" } })

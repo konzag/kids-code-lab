@@ -25,7 +25,7 @@ const HUB = args.includes("--hub-headers") ? {
 } : {};
 
 // files the sandboxed simulator frame loads (makecode/sim/simulator.html), relative to the route
-const SIM_ASSETS = /^(simulator\.html|pxtsim\.js|sim\.js|sim\.css)$/;
+const SIM_ASSETS = /^(simulator\.html|pxtsim\.js|sim\.js|sim\.css|sim-keys\.js)$/;
 
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
