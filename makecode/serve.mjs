@@ -4,7 +4,7 @@
 //                         [--block-sw] [--hub-headers]   (--block-sw: answer 404 for serviceworker.js, proves the editor runs without one)
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, normalize, relative, resolve } from "node:path";
 import { cspFor } from "./csp.mjs";
 
 const args = process.argv.slice(2);
@@ -57,7 +57,7 @@ createServer(async (req, res) => {
     // The simulator frame runs sandboxed (opaque origin), so its own subresources are cross-origin requests:
     // with the hub CORP "same-origin" they would be blocked. These public static files get CORP "cross-origin".
     if (HUB["cross-origin-resource-policy"] && SIM_ASSETS.test(p)) headers["cross-origin-resource-policy"] = "cross-origin";
-    const csp = type.startsWith("text/html") ? cspFor(cspMode, body.toString("utf8"), f.split("\\").join("/")) : "";
+    const csp = type.startsWith("text/html") ? cspFor(cspMode, body.toString("utf8"), route + relative(root, f).split("\\").join("/")) : "";
     if (csp) headers["content-security-policy"] = csp;
     res.writeHead(200, headers).end(body);
   } catch (e) {

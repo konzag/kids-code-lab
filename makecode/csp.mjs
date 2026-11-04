@@ -8,6 +8,7 @@
 //   play     narrowest CSP found for the play-only page + simulator frame
 //   adr      games-hub ADR-0006: per page kind (editor, simulator frame, player, lab pages), what infra sends
 import { createHash } from "node:crypto";
+import { kindOf } from "./manifest.mjs";
 
 export function inlineScriptHashes(html) {
   const out = [];
@@ -51,20 +52,17 @@ const TABLE = {
 };
 
 // ADR-0006 (games-hub): one CSP per page kind, as infra's file server sends them.
-const LAB = ["default-src 'none'", "script-src 'self'", "style-src 'self'", "img-src 'self' data:", "font-src 'self'",
-  "connect-src 'self'", "frame-src 'self'", "worker-src 'none'", "media-src 'none'", "manifest-src 'self'",
-  "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'"];
-
+// ADR-0006 page kinds come from the release manifest's rules (makecode/manifest.mjs): editor (index.html, run.html,
+// the lab's own pages lab/*), simulator (simulator.html), player (play/*). The test server sends exactly what infra
+// sends for each kind.
 export function pageKind(path) {
-  if (/(^|\/)simulator\.html$/.test(path)) return "sim";
-  if (/\/play\/[^/]*$/.test(path)) return "play";
-  if (/\/lab\/[^/]*$/.test(path)) return "lab";
-  return "editor";
+  const rel = String(path).replace(/^.*\/kids-code-lab\//, "").replace(/^\//, "");
+  const k = kindOf(rel);
+  return k === "simulator" ? "sim" : k === "player" ? "play" : "editor";
 }
 
 function adrCsp(html, path) {
   const kind = pageKind(path);
-  if (kind === "lab") return LAB.join("; ");
   // ADR-0006 amendment 2026-11-04 (WP3): the editor page's worker-src adds data: for MakeCode's music editor
   // metronome (pxsim AudioContextManager.Metronome: new Worker("data:application/javascript,...")). A data: worker
   // runs with an opaque origin: no access to the page, its storage or cookies.

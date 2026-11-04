@@ -3,7 +3,7 @@
 # Runs in Linux (CI) or Git Bash (Windows) with Node >= 20, git, tar. Nothing global is installed.
 # Usage: WORK=<build folder outside the repo> bash makecode/build.sh
 # Output: $WORK/slim/                         the lab's static site, served at $ROUTE (default /kids-code-lab/)
-#         $WORK/kids-code-lab-<version>.tar.gz  the release artefact (slim + precompressed .gz/.br files)
+#         $WORK/kids-code-lab-<version>.tar.gz (+ .sha256)  the release artefact: kids-code-lab-<version>/{www/,kcl-headers.json}
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -11,6 +11,7 @@ WORK="${WORK:-$HERE/../.build}"
 ARCADE_TAG="${ARCADE_TAG:-v4.2.1}"          # pins pxt-core 13.2.1 and pxt-common-packages 14.1.4 (package.json)
 ROUTE="${ROUTE:-/kids-code-lab}"
 VERSION="${VERSION:-$(git -C "$HERE" describe --tags --always 2>/dev/null || echo dev)}"
+VERSION="${VERSION#v}"                     # release contract: <version> = the tag without its leading v
 
 mkdir -p "$WORK" && cd "$WORK"
 WORK="$(pwd)"
@@ -50,5 +51,5 @@ node "$HERE/patch-output.mjs" "$OUT" --slim "$WORK/slim"
 # play page (/kids-code-lab/play/?id=) and the lab's own pages (/kids-code-lab/lab/)
 rm -rf "$WORK/slim/play" "$WORK/slim/lab"
 mkdir -p "$WORK/slim/play" "$WORK/slim/lab" && cp "$HERE"/player/* "$WORK/slim/play/" && cp "$HERE"/lab/* "$WORK/slim/lab/"
-node "$HERE/pack.mjs" "$WORK/slim" "$WORK/kids-code-lab-$VERSION.tar.gz"
+node "$HERE/pack.mjs" "$WORK/slim" "$WORK" "$VERSION"
 du -sh "$OUT" "$WORK/slim"

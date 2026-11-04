@@ -4,7 +4,7 @@ The family's kids make their own small arcade games with blocks (MakeCode Arcade
 play them on the PC or tablet and, with a parent's family code, publish a finished game to a shelf in «Τα Παιχνίδια
 μας» (games-hub). No accounts, no cloud, nothing leaves the house.
 
-**Status: work package 3 of L1-27 (lab pages, shell keys, feature CSP coverage; no deploy yet).** Spec: [docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md).
+**Status: work package 4 of L1-27 (release packaging; first pre-release `v0.1.0-rc.1` for staging; no deploy by this repo).** Spec: [docs/specs/KIDS-CODE-LAB.md](docs/specs/KIDS-CODE-LAB.md).
 Spike of spec §4: [docs/spike/SPIKE-REPORT.md](docs/spike/SPIKE-REPORT.md). Build, patches and checks:
 [docs/BUILD.md](docs/BUILD.md). Hub side (shelf page, landing card, `/api/lab/*`): games-hub ADR-0006, built in
 games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
@@ -78,6 +78,8 @@ games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-N
 
 ## Τι άλλαξε
 
+- 2026-11-04, WP4 (`list1/l1-27-wp4`): πακέτο έκδοσης για το infra (`www/` + `kcl-headers.json`, `.sha256`),
+  pre-release `v0.1.0-rc.1`. Καμία αλλαγή στην οθόνη.
 - 2026-11-04, WP3 (`list1/l1-27-wp3`): τα πλήκτρα P/Esc, M, F δουλεύουν και μέσα στο παιχνίδι (KCL-19)· έλεγχος πόρων,
   μουσικής και μαθημάτων (KCL-20..22)· οι εικόνες των μαθημάτων μέσα στο πακέτο· χωρίς «Immersive Reader».
 - 2026-11-03, WP2 (`list1/l1-27-wp2`): σελίδες του εργαστηρίου, δημοσίευση, απόσυρση, κουμπιά κελύφους στο «Παίξε»,

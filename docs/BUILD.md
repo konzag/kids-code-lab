@@ -29,7 +29,8 @@ Steps of [`makecode/build.sh`](../makecode/build.sh):
 6. [`makecode/patch-output.mjs`](../makecode/patch-output.mjs) patches the output and copies the **slim** site
    (`$WORK/slim`, about 76 MB, 1 580 files); the play page is added (`slim/play/`);
    [`makecode/pack.mjs`](../makecode/pack.mjs) writes `.gz` and `.br` next to every text file (for a file server
-   with precompressed support) and the release tarball `$WORK/kids-code-lab-<version>.tar.gz`.
+   with precompressed support), the manifest `kcl-headers.json` ([`makecode/manifest.mjs`](../makecode/manifest.mjs)) and
+   the release tarball `$WORK/kids-code-lab-<version>.tar.gz` with its `.sha256` (see "Release").
 
 Build-time network: GitHub (clone), the npm registry, makecode.com translations API. **No makecode.com cloud
 compiler** any more (the hardware variants are removed, see below); CI fails if the build log shows a cloud compile.
@@ -104,7 +105,7 @@ frames and workers is recorded; anything not on 127.0.0.1 is aborted and fails t
 | [`tests/e2e/lab.spec.mjs`](../tests/e2e/lab.spec.mjs) | lab home at 1280 / 820x1180 / 1180x820 / 360 in light and dark (Greek, `lang="el"`, sections, text ≥ 18 px, no horizontal scroll, axe 0 serious/critical), remembered theme switch, editor bar and framed editor, 360 px note, the publish flow against the fake hub (binary gzip-JSON + PNG cartridge received, 201, token kept and never in a URL or the console, `completed`/`completedAt`/milestones, the published game plays sandboxed, shell buttons, «Απόσυρση» with the token), every error answer in Greek, no session = link to «Προφίλ» and no PIN field, client-side 2 MB gzip cap; 0 external, 0 CSP violations, 0 console errors |
 | [`tests/unit/core.test.mjs`](../tests/unit/core.test.mjs) | `node --test`: KCL-U01..U12 (settings load/save with bad JSON, missing `hub`, old version, broken storage; milestone rules; `completedAt` once; payload caps and cleaning; gzip cap; Greek answers; `?id=` parser). Red against an empty module (`KCL_CORE=<empty module>`: 12 of 12 fail) |
 
-Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play|adr` (`adr` = games-hub ADR-0006 per page kind: editor, simulator frame, player, lab pages; blocks in
+Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play|adr` (`adr` = games-hub ADR-0006 per page kind, classified by the manifest rules: editor = `index.html`, `run.html`, `lab/*`; simulator = `simulator.html`; player = `play/*`; blocks in
 [`makecode/csp.mjs`](../makecode/csp.mjs); `EDITOR_TIGHT=1` = the recommended editor pair), `SW=block` (default: service workers allowed, so "0 registered" is meaningful; Playwright's block mode also throws a console error inside sandboxed frames),
 `HUB_HEADERS=1` (the games-hub security headers incl. `X-Frame-Options: DENY` and `Permissions-Policy`).
 
@@ -115,13 +116,37 @@ CSP=play HUB_HEADERS=1 npx playwright test tests/e2e/play.spec.mjs
 CSP=strict npx playwright test tests/e2e/play.spec.mjs --grep desktop   # must FAIL: the game needs 'unsafe-eval'
 ```
 
+## Release
+
+Contract: APP-REPLY 2026-11-03 §2c (infra deploys from the GitHub release with `deploy-release.sh <version>`).
+
+- Assets: `kids-code-lab-<version>.tar.gz` and `kids-code-lab-<version>.tar.gz.sha256` (sha256sum format:
+  `<hash>  kids-code-lab-<version>.tar.gz`). `<version>` = the tag without its leading `v`. A tag with `-rc.`
+  is a GitHub **pre-release** (staging); the final tag comes after the owner's «I approve» (prod).
+- Tarball: one top directory `kids-code-lab-<version>/` holding `www/` (the tree served at `/kids-code-lab/`,
+  `.br` and `.gz` next to each text file of 1 KB or more) and `kcl-headers.json` (not served).
+- `kcl-headers.json`, schema 1, written by the build from the shipped tree:
+  `{"schema": 1, "editor": {"paths": ["index.html", "run.html", "lab/*"], "script_hashes": ["sha256-..."]},
+  "simulator": {"paths": ["simulator.html"]}, "player": {"paths": ["play/*"]}, "corp_cross_origin": ["simulator.html",
+  "pxtsim.js", "sim.js", "sim.css", "sim-keys.js"]}`. Paths are relative to `/kids-code-lab/`, `*` only as the
+  whole last segment. Every `*.html` under `www/` is in exactly one kind (the build stops otherwise; the slim copy
+  no longer ships MakeCode's `docfiles/` templates or `siminstructions.html`, which nothing in the lab uses). The
+  lab's own pages run under the editor policy. Infra keeps the three CSP texts of ADR-0006 and fills in the hashes.
+- [`tests/release/release.test.mjs`](../tests/release/release.test.mjs) (KCL-R01..R07, CI after the build): the
+  `.sha256` verifies; one top directory with `www/` and `kcl-headers.json` only; precompressed files decode to the
+  originals; the manifest has exactly the schema-1 keys and path rules; every html in exactly one kind; the editor
+  hashes recomputed independently from the shipped HTML; the five CORP files exist and are exactly what
+  `simulator.html` loads. [`tests/unit/csp.test.mjs`](../tests/unit/csp.test.mjs): the test server's `adr` mode keeps
+  matching the ADR-0006 texts (games-hub d324f13) and the manifest's kinds.
+
 ## CI
 
 [`.github/workflows/build.yml`](../.github/workflows/build.yml): GitHub-hosted `ubuntu-24.04`, actions pinned by
 commit SHA, `permissions: contents: read`, no secrets. Job `build`: the build, the "no cloud compiler" check, the
 unit tests, the editor checks without a CSP, every Playwright spec under `CSP=adr HUB_HEADERS=1` (the ADR-0006 headers incl. `X-Frame-Options: SAMEORIGIN` and CORP), the strict-CSP negative check, then the tarball as the artifact `kids-code-lab`
 and the check results (`test-results/*.json`, build log, Greek coverage table) as `check-results`. Job `release`
-(only for `v*` tags, `permissions: contents: write` in that job only): attaches the tarball to the GitHub release.
+(only for `v*` tags, `permissions: contents: write` in that job only): checks the `.sha256` again and attaches both
+assets to the GitHub release; a tag with `-rc.` makes a pre-release.
 
 ## Player security
 
@@ -177,7 +202,7 @@ Header change: `sim-keys.js` is a fifth simulator-frame file with `Cross-Origin-
 - The simulator is used as compiled by Microsoft (`sim.js` from npm); a MakeCode upgrade = new `ARCADE_TAG`, a new
   build and the checks; the simulator page's ids/classes must still match what `sim.js` looks up, and the sandbox
   patch must still find its three code patterns (the build stops otherwise).
-- The tarball is about 43 MB because it carries the `.gz` and `.br` files next to the originals (16 MB without them).
+- The tarball is about 46 MB because it carries the `.gz` and `.br` files next to the originals.
 - MakeCode's own home page is kept (My Projects, New Project, Import from file); the lab's pages come in the next work
   package. The Download button's menu still shows a "Choose hardware" entry (it opens an empty hardware list); the
   child's backup is the save button (the `.png` cartridge).
