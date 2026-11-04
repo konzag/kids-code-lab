@@ -41,17 +41,29 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
-      - name: Unit tests (lab settings, milestones, publish payload, gzip cap)
-        run: node --test tests/unit/core.test.mjs
+      - name: Unit tests (lab settings, milestones, publish payload, gzip cap, CSP texts of ADR-0006)
+        run: node --test tests/unit/core.test.mjs tests/unit/csp.test.mjs
 
       - name: Build (pinned pxt-arcade, patches, slim, precompression, tarball)
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "$REF_TYPE" = "tag" ]; then export VERSION="$REF_NAME"; else export VERSION="$(git rev-parse --short HEAD)"; fi
+          # release contract: <version> = the tag without its leading v; branch builds get 0.0.0-dev.<sha>
+          if [ "$REF_TYPE" = "tag" ]; then VERSION="${REF_NAME#v}"; else VERSION="0.0.0-dev.$(git rev-parse --short HEAD)"; fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          export VERSION
           bash makecode/build.sh 2>&1 | tee build.log
-          ls -la "$WORK"/kids-code-lab-*.tar.gz
+          ls -la "$WORK"/kids-code-lab-*.tar.gz*
+
+      - name: Check - release tarball layout, .sha256 and kcl-headers.json (APP-REPLY 2026-11-03 §2c)
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then export KCL_VERSION="$REF_NAME"; fi
+          KCL_TARBALL="$WORK/kids-code-lab-$VERSION.tar.gz" node --test tests/release/release.test.mjs
+          (cd "$WORK" && sha256sum -c "kids-code-lab-$VERSION.tar.gz.sha256")
 
       - name: The build used no makecode.com cloud compiler
         run: |
@@ -71,11 +83,13 @@ jobs:
             echo "::error::strict CSP unexpectedly passed"; exit 1
           fi
 
-      - name: Upload release artefact
+      - name: Upload release artefact (tarball + .sha256)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kids-code-lab
-          path: ${{ runner.temp }}/kcl-build/kids-code-lab-*.tar.gz
+          path: |
+            ${{ runner.temp }}/kcl-build/kids-code-lab-*.tar.gz
+            ${{ runner.temp }}/kcl-build/kids-code-lab-*.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -104,16 +118,30 @@ jobs:
           name: kids-code-lab
           path: dist
 
-      - name: Attach the tarball to the GitHub release
+      - name: Verify the assets before publishing
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          V="${TAG#v}"
+          ls -la dist
+          test -f "dist/kids-code-lab-$V.tar.gz" && test -f "dist/kids-code-lab-$V.tar.gz.sha256"
+          (cd dist && sha256sum -c "kids-code-lab-$V.tar.gz.sha256")
+
+      - name: Attach both assets to the GitHub release (a -rc. tag is a pre-release)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          ls -la dist
+          V="${TAG#v}"
+          ASSETS=("dist/kids-code-lab-$V.tar.gz" "dist/kids-code-lab-$V.tar.gz.sha256")
+          PRE=()
+          case "$TAG" in *-rc.*) PRE=(--prerelease) ;; esac
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/kids-code-lab-*.tar.gz --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            if [ ${#PRE[@]} -gt 0 ]; then gh release edit "$TAG" --prerelease; fi
           else
-            gh release create "$TAG" dist/kids-code-lab-*.tar.gz --verify-tag --title "$TAG" \
-              --notes "Offline MakeCode Arcade build for the kids' code lab. See docs/BUILD.md."
+            gh release create "$TAG" "${ASSETS[@]}" --verify-tag "${PRE[@]}" --title "kids-code-lab $V" \
+              --notes "Offline MakeCode Arcade build for the kids' code lab (L1-27). Assets per the release contract: www/ + kcl-headers.json in one top directory, sha256sum file. See docs/BUILD.md."
           fi
+          gh release view "$TAG" --json isPrerelease,assets --jq '{isPrerelease, assets: [.assets[].name]}'

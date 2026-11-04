@@ -90,7 +90,7 @@ console.log(`patch-output: ${patched} html without telemetry, ${cdn} html with e
 if (slim) {
   // keep-list (top level). Everything else in the package is the docs site or another sub-app.
   const KEEP = [
-    "index.html", "run.html", "simulator.html", "siminstructions.html",
+    "index.html", "run.html", "simulator.html",
     "main.js", "pxtapp.js", "pxtlib.js", "pxtweb.js", "pxtsim.js", "pxtcompiler.js", "pxtpy.js", "pxtworker.js",
     "pxtembed.js", "pxtrcdeps.js", "pxtasseteditor.js", "embed.js", "worker.js", "tsworker.js", "monacoworker.js",
     "typescript.js", "target.js", "target.json", "targetlight.js", "targetlight.json", "targetconfig.json",
@@ -99,7 +99,7 @@ if (slim) {
     "semantic.css", "rtlsemantic.css", "blockly.css", "rtlblockly.css", "icons.css", "sim.css", "sim-keys.js",
     "sim.webmanifest", "favicon.ico",
     "blockly", "fonts", "icons", "images", "locales", "vs", "gifjs", "marked", "music-editor", "sounds", "qrcode",
-    "smoothie", "docfiles",
+    "smoothie",
     "docs/static/Micorsoft_logo_rgb_W-white_D.png", "docs/static/Micorsoft_logo_rgb_W-white_D-square.png",
   ];
   rmSync(slim, { recursive: true, force: true });
