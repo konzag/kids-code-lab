@@ -139,6 +139,53 @@ for (const vp of [{ name: "desktop", width: 1280, height: 800 }, { name: "tablet
   });
 }
 
+// GAME-STANDARD §3 shell keys P/Esc (stop), M (sound), F (full screen) also work while the sandboxed game frame has
+// the focus; the game keeps its own keys (arrows move the sprite).
+test("shell keys P/Esc, M, F work with the focus inside the game frame", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const rec = await recordAll(context);
+  const page = await context.newPage();
+  const errors = watchPage(page, rec);
+  await page.route("**/api/lab/games/1/binary", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(built) }));
+  await page.goto("/kids-code-lab/play/?id=1");
+  await expect.poll(() => screenPixel(page, 0.02, 0.02), { timeout: 60_000 }).toBe(RED);
+  // focus inside the frame: click the game screen
+  const sim = page.frameLocator("#player iframe").last();
+  await sim.locator("#game-screen").click();
+  expect(await page.evaluate(() => document.activeElement && document.activeElement.tagName)).toBe("IFRAME");
+
+  // the game still gets its keys
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(800);
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(() => screenPixel(page, 0.5, 0.5), { timeout: 5_000 }).toBe(RED);
+
+  await page.keyboard.press("m");
+  await expect(page.locator("#mute")).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("m");
+  await expect(page.locator("#mute")).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("p");
+  await expect(page.locator("#pause")).toHaveAttribute("aria-pressed", "true");
+  await sim.locator("#game-screen").click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#pause")).toHaveAttribute("aria-pressed", "false");
+  // the same message from anything but the game frame is ignored (event.source check), and a wrong shape too
+  await page.evaluate(() => window.postMessage({ type: "kcl-shell-key", action: "mute" }, "*"));
+  await liveSim(page).evaluate(() => {
+    window.parent.postMessage({ type: "kcl-shell-key", action: "mute", extra: 1 }, "*");
+    window.parent.postMessage({ type: "kcl-shell-key", action: "toString" }, "*");
+  });
+  await page.waitForTimeout(300);
+  await expect(page.locator("#mute")).toHaveAttribute("aria-pressed", "false");
+  await sim.locator("#game-screen").click();
+  await page.keyboard.press("f");
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement), { timeout: 5_000 }).toBe(true);
+  expect(rec.external).toEqual([]);
+  expect(rec.violations).toEqual([]);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
 // Only ?id=<1-9 digits> is accepted; anything else fetches and runs nothing and shows a Greek message.
 for (const qs of ["?src=/kids-code-lab/play/x.json", "?id=../x", "?id=1x", "?id=" + encodeURIComponent("http://127.0.0.1:1/x"),
   "?id=1234567890", "?id=1&src=x", ""]) {

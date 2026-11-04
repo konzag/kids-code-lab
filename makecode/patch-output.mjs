@@ -96,7 +96,7 @@ if (slim) {
     "typescript.js", "target.js", "target.json", "targetlight.js", "targetlight.json", "targetconfig.json",
     "theme.json", "target-strings.json", "sim-strings.json", "sim.js", "common-sim.js", "editor.js", "scriptPage.js",
     "semantic.js", "jquery.js", "zip.js", "highlight.js", "runnerembed.js",
-    "semantic.css", "rtlsemantic.css", "blockly.css", "rtlblockly.css", "icons.css", "sim.css",
+    "semantic.css", "rtlsemantic.css", "blockly.css", "rtlblockly.css", "icons.css", "sim.css", "sim-keys.js",
     "sim.webmanifest", "favicon.ico",
     "blockly", "fonts", "icons", "images", "locales", "vs", "gifjs", "marked", "music-editor", "sounds", "qrcode",
     "smoothie", "docfiles",
