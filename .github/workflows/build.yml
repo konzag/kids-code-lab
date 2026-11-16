@@ -1,22 +1,46 @@
 # KIDS-CODE-LAB: offline MakeCode Arcade build + checks (docs/BUILD.md).
-# GitHub-hosted runners only (public repo), no secrets. Action versions pinned by commit SHA.
+# GitHub-hosted runners only (public repo: never the homelab runner, a fork PR could run code there), no secrets.
+# Action versions pinned by commit SHA. main is the default branch (no staging): every PR into main runs CI, push CI
+# runs only on main and on v* tags (the release), so a PR commit runs once. No concurrency group on the workflow or
+# on build/lint (CI-NO-CONCURRENCY 2026-11-15: a run is never left «pending»; superseded runs are not cancelled);
+# the checks' test server takes a free port (playwright.config.mjs). Only `release`, which writes GitHub releases,
+# keeps its own group and never cancels. tests/unit/workflow.test.mjs checks these rules.
 name: build
 
 on:
-  push:
-    branches: ["**"]
-    tags: ["v*"]
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
-
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint (node --check on every .js/.mjs, shellcheck on every .sh)
+        run: npm run lint
+
+      - name: Unit tests (lab core, CSP texts, free test-server port, this workflow's rules)
+        run: npm run test:unit
+
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -41,8 +65,8 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
-      - name: Unit tests (lab settings, milestones, publish payload, gzip cap, CSP texts of ADR-0006)
-        run: node --test tests/unit/core.test.mjs tests/unit/csp.test.mjs
+      - name: Unit tests (lab settings, milestones, publish payload, gzip cap, CSP texts of ADR-0006, free port, workflow)
+        run: npm run test:unit
 
       - name: Build (pinned pxt-arcade, patches, slim, precompression, tarball)
         env:
@@ -74,7 +98,7 @@ jobs:
       - name: Check - editor offline, no service worker, no console errors (no CSP header)
         run: npx playwright test tests/e2e/editor.spec.mjs
 
-      - name: Check - everything under the games-hub ADR-0006 CSPs and headers (editor, player, lab pages + fake hub API)
+      - name: Check - Playwright smoke of the built lab, everything under the games-hub ADR-0006 CSPs and headers (editor, player, lab pages + fake hub API)
         run: CSP=adr HUB_HEADERS=1 npx playwright test
 
       - name: Check - the hub-like CSP everywhere must block the game (proves the simulator CSP is needed)
@@ -107,11 +131,15 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
+    # kept (CI-NO-CONCURRENCY exception): this job writes the GitHub release; one tag, one writer, never cancelled
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

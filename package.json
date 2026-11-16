@@ -5,6 +5,8 @@
   "description": "KIDS-CODE-LAB: offline MakeCode Arcade build and checks (docs/BUILD.md).",
   "scripts": {
     "build": "bash makecode/build.sh",
+    "lint": "node tests/lint.mjs",
+    "test:unit": "node --test tests/unit/core.test.mjs tests/unit/csp.test.mjs tests/unit/free-port.test.mjs tests/unit/workflow.test.mjs",
     "test": "playwright test"
   },
   "devDependencies": {

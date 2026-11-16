@@ -4,9 +4,14 @@
 // HUB_HEADERS=1 adds the games-hub security headers. EDITOR_TIGHT=1 = the recommended editor CSP pair.
 import { defineConfig } from "@playwright/test";
 import { resolve } from "node:path";
+import { freePort } from "./tests/free-port.mjs";
 
 const PKG = resolve(process.env.PKG ?? ".build/slim");
-const PORT = Number(process.env.PW_PORT ?? 8471);
+// PW_PORT first (the override); unset = a free port (FREE-PORTS: CI has no concurrency group). Picked ONCE, in the
+// main process, and stored in process.env: Playwright loads this config again in every worker, and the workers
+// inherit PW_PORT, so they all read the same baseURL. Never pick unconditionally here.
+process.env.PW_PORT ||= String(freePort());
+const PORT = Number(process.env.PW_PORT);
 const CSP = process.env.CSP ?? "none";
 const HUB = process.env.HUB_HEADERS === "1" ? " --hub-headers" : "";
 

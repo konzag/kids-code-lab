@@ -105,7 +105,7 @@ frames and workers is recorded; anything not on 127.0.0.1 is aborted and fails t
 | [`tests/e2e/lab.spec.mjs`](../tests/e2e/lab.spec.mjs) | lab home at 1280 / 820x1180 / 1180x820 / 360 in light and dark (Greek, `lang="el"`, sections, text ≥ 18 px, no horizontal scroll, axe 0 serious/critical), remembered theme switch, editor bar and framed editor, 360 px note, the publish flow against the fake hub (binary gzip-JSON + PNG cartridge received, 201, token kept and never in a URL or the console, `completed`/`completedAt`/milestones, the published game plays sandboxed, shell buttons, «Απόσυρση» with the token), every error answer in Greek, no session = link to «Προφίλ» and no PIN field, client-side 2 MB gzip cap; 0 external, 0 CSP violations, 0 console errors |
 | [`tests/unit/core.test.mjs`](../tests/unit/core.test.mjs) | `node --test`: KCL-U01..U12 (settings load/save with bad JSON, missing `hub`, old version, broken storage; milestone rules; `completedAt` once; payload caps and cleaning; gzip cap; Greek answers; `?id=` parser). Red against an empty module (`KCL_CORE=<empty module>`: 12 of 12 fail) |
 
-Environment of the checks: `PKG` (site folder), `CSP=none|strict|editor|play|adr` (`adr` = games-hub ADR-0006 per page kind, classified by the manifest rules: editor = `index.html`, `run.html`, `lab/*`; simulator = `simulator.html`; player = `play/*`; blocks in
+Environment of the checks: `PW_PORT` (port of the test server; unset = a free port, picked once per run), `PKG` (site folder), `CSP=none|strict|editor|play|adr` (`adr` = games-hub ADR-0006 per page kind, classified by the manifest rules: editor = `index.html`, `run.html`, `lab/*`; simulator = `simulator.html`; player = `play/*`; blocks in
 [`makecode/csp.mjs`](../makecode/csp.mjs); `EDITOR_TIGHT=1` = the recommended editor pair), `SW=block` (default: service workers allowed, so "0 registered" is meaningful; Playwright's block mode also throws a console error inside sandboxed frames),
 `HUB_HEADERS=1` (the games-hub security headers incl. `X-Frame-Options: DENY` and `Permissions-Policy`).
 
@@ -141,11 +141,17 @@ Contract: APP-REPLY 2026-11-03 §2c (infra deploys from the GitHub release with 
 
 ## CI
 
-[`.github/workflows/build.yml`](../.github/workflows/build.yml): GitHub-hosted `ubuntu-24.04`, actions pinned by
-commit SHA, `permissions: contents: read`, no secrets. Job `build`: the build, the "no cloud compiler" check, the
+[`.github/workflows/build.yml`](../.github/workflows/build.yml): GitHub-hosted `ubuntu-24.04` (public repo: never
+the homelab runner), actions pinned by commit SHA, `permissions: contents: read`, no secrets. `main` is the default
+branch (no staging): CI runs on every PR into `main`, on pushes to `main` and on `v*` tags. No `concurrency` group on
+the workflow or on `build`/`lint` (CI-NO-CONCURRENCY): superseded runs are not cancelled, and the checks' test server
+takes a free port (`PW_PORT` overrides it), so two runs never share one. Only `release` keeps its own group
+(`release-<tag>`, never cancelling), because it writes the GitHub release. [`tests/unit/workflow.test.mjs`](../tests/unit/workflow.test.mjs)
+checks these rules. Job `lint`: `npm run lint` (`node --check` on every `.js`/`.mjs`, shellcheck on every `.sh`;
+the frozen `docs/spike/` scripts are left out) and `npm run test:unit`. Job `build`: the build, the "no cloud compiler" check, the
 unit tests, the editor checks without a CSP, every Playwright spec under `CSP=adr HUB_HEADERS=1` (the ADR-0006 headers incl. `X-Frame-Options: SAMEORIGIN` and CORP), the strict-CSP negative check, then the tarball as the artifact `kids-code-lab`
 and the check results (`test-results/*.json`, build log, Greek coverage table) as `check-results`. Job `release`
-(only for `v*` tags, `permissions: contents: write` in that job only): checks the `.sha256` again and attaches both
+(only for `v*` tags, after `build` and `lint`, `permissions: contents: write` in that job only): checks the `.sha256` again and attaches both
 assets to the GitHub release; a tag with `-rc.` makes a pre-release.
 
 ## Player security

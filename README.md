@@ -74,7 +74,7 @@ games-hub. Third-party code and licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-N
 | KCL-21 | «Πόροι» → «+» → τραγούδι· νότες με δύο όργανα, ▶ και ■ | Ακούγεται το τραγούδι, χωρίς σφάλμα |
 | KCL-22 | «Μαθήματα» → «Το πρώτο μου παιχνίδι», «ΟΚ», βήματα μέχρι το τέλος | Όλες οι εικόνες φαίνονται· χωρίς κουμπί «Immersive Reader» |
 
-Αυτόματες δοκιμές: `node --test tests/unit/core.test.mjs` (KCL-U01..U12) και Playwright (`tests/e2e/`, docs/BUILD.md).
+Αυτόματες δοκιμές: `npm run lint`, `npm run test:unit` (KCL-U01..U21) και Playwright (`tests/e2e/`, docs/BUILD.md).
 
 ## Τι άλλαξε
 
